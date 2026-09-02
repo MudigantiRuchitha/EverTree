@@ -10,9 +10,9 @@ function LayoutInner({ children }) {
     const { openChat } = useChat();
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
             <Navbar onOpenChat={() => openChat(null)} />
-            <main style={{ flex: 1 }}>
+            <main className="flex-1 w-full">
                 {children}
             </main>
             <Footer />

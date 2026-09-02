@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Search, MapPin, Building, DollarSign, Home } from 'lucide-react';
+import { Search, MapPin, Building, DollarSign, Home, SlidersHorizontal } from 'lucide-react';
 
 const HeroSearch = ({ onSearch }) => {
     const [category, setCategory] = useState('all');
@@ -25,75 +25,105 @@ const HeroSearch = ({ onSearch }) => {
     };
 
     return (
-        <div style={{ position: 'relative', padding: '40px 0 50px 0', textAlign: 'center' }}>
-            <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="relative bg-center bg-no-repeat bg-cover py-10 sm:py-16 lg:py-20" style={{ backgroundImage: "url('/images/Hero-bg.jpg')" }}>
+            <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px]"></div>
+
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* Hero Headline */}
-                <div style={{ maxWidth: '750px', margin: '0 auto 28px auto' }}>
-                    <span className="badge badge-emerald" style={{ marginBottom: '12px', padding: '6px 14px', fontSize: '0.82rem' }}>
-                        🌲 evertree.in
+                {/* Hero Badge & Title */}
+                <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-emerald-500/90 text-white backdrop-blur-md shadow-md mb-4">
+                        🌲 Legal Verified Properties Across India
                     </span>
-                    <h1 style={{ fontSize: '2.8rem', color: '#0f172a', marginBottom: '8px', lineHeight: '1.15' }}>
-                        Property Connect: <span style={{ color: 'var(--primary-emerald)' }}>Buy</span> • <span style={{ color: 'var(--accent-gold)' }}>Sell</span> • <span style={{ color: '#2563eb' }}>Rent</span>
+                    <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight drop-shadow-md">
+                        Find Your Dream Home With 100% Clear Title
                     </h1>
+                    <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-100 font-medium drop-shadow">
+                        Verified sellers, certified RERA brokers, and direct escrow assistance.
+                    </p>
                 </div>
 
-                {/* Light Search Box */}
-                <div className="glass-card" style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'left' }}>
+                {/* Light Glass Search Box */}
+                <div className="bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl max-w-5xl mx-auto">
                     
-                    {/* Visual Tabs */}
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                    {/* Category Selector Tabs */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 sm:mb-6 border-b border-slate-200 scrollbar-none">
                         {[
                             { id: 'all', label: 'All Listings' },
-                            { id: 'buy', label: 'Buy' },
-                            { id: 'sell', label: 'Sell' },
+                            { id: 'sell', label: 'Buy' },
                             { id: 'rent', label: 'Rent' },
-                            { id: 'commercial', label: 'Commercial' },
-                            { id: 'agricultural', label: 'Agricultural Land' }
                         ].map(tab => (
                             <button
                                 key={tab.id}
+                                type="button"
                                 onClick={() => setCategory(tab.id)}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '20px',
-                                    fontFamily: 'var(--font-primary)',
-                                    fontWeight: '700',
-                                    fontSize: '0.88rem',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    background: category === tab.id ? 'var(--primary-emerald)' : '#f1f5f9',
-                                    color: category === tab.id ? '#ffffff' : 'var(--text-muted)'
-                                }}
+                                className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+                                    category === tab.id
+                                        ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                                }`}
                             >
                                 {tab.label}
                             </button>
                         ))}
                     </div>
 
-                    {/* Search Filters */}
-                    <form onSubmit={handleSearchSubmit}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    {/* Search Filters Form */}
+                    <form onSubmit={handleSearchSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                             
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><Search size={14} /> Search</label>
-                                <input type="text" className="form-control" placeholder="Indiranagar, Villa..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                            {/* Keyword Search */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <Search className="w-3.5 h-3.5 text-emerald-600" /> Search
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    placeholder="Indiranagar, Villa..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><MapPin size={14} /> City</label>
-                                <input type="text" className="form-control" placeholder="Bengaluru" value={city} onChange={(e) => setCity(e.target.value)} />
+                            {/* City */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <MapPin className="w-3.5 h-3.5 text-emerald-600" /> City
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    placeholder="Bengaluru"
+                                    value={city}
+                                    onChange={(e) => setCity(e.target.value)}
+                                />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><MapPin size={14} /> District</label>
-                                <input type="text" className="form-control" placeholder="Urban Bengaluru" value={district} onChange={(e) => setDistrict(e.target.value)} />
+                            {/* District */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <MapPin className="w-3.5 h-3.5 text-amber-600" /> District
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    placeholder="Urban Bengaluru"
+                                    value={district}
+                                    onChange={(e) => setDistrict(e.target.value)}
+                                />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><Building size={14} /> Type</label>
-                                <select className="form-control" value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
+                            {/* Property Type */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <Building className="w-3.5 h-3.5 text-emerald-600" /> Type
+                                </label>
+                                <select
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    value={propertyType}
+                                    onChange={(e) => setPropertyType(e.target.value)}
+                                >
                                     <option value="">All Types</option>
                                     <option value="apartment">Apartment</option>
                                     <option value="villa">Villa</option>
@@ -102,9 +132,16 @@ const HeroSearch = ({ onSearch }) => {
                                 </select>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><Home size={14} /> BHK</label>
-                                <select className="form-control" value={bhk} onChange={(e) => setBhk(e.target.value)}>
+                            {/* BHK */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <Home className="w-3.5 h-3.5 text-blue-600" /> BHK
+                                </label>
+                                <select
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    value={bhk}
+                                    onChange={(e) => setBhk(e.target.value)}
+                                >
                                     <option value="">Any BHK</option>
                                     <option value="1">1 BHK</option>
                                     <option value="2">2 BHK</option>
@@ -113,9 +150,16 @@ const HeroSearch = ({ onSearch }) => {
                                 </select>
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label><DollarSign size={14} /> Max Budget</label>
-                                <select className="form-control" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
+                            {/* Max Price */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Max Budget
+                                </label>
+                                <select
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                                    value={maxPrice}
+                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                >
                                     <option value="">No Limit</option>
                                     <option value="3000000">₹30 Lakhs</option>
                                     <option value="6000000">₹60 Lakhs</option>
@@ -123,11 +167,17 @@ const HeroSearch = ({ onSearch }) => {
                                     <option value="20000000">₹2 Crores</option>
                                 </select>
                             </div>
+
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <button type="submit" className="btn btn-primary" style={{ padding: '10px 28px', fontSize: '0.95rem' }}>
-                                <Search size={16} /> Search Properties
+                        {/* Search Action Button */}
+                        <div className="flex justify-end pt-2">
+                            <button
+                                type="submit"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 cursor-pointer"
+                            >
+                                <Search className="w-4 h-4" />
+                                Search Properties
                             </button>
                         </div>
                     </form>

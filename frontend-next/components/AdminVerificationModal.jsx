@@ -17,7 +17,7 @@ const AdminVerificationModal = ({ isOpen, onClose }) => {
         setLoading(true);
         try {
             const res = await authAPI.getPendingVerifications();
-            setPendingUsers(res.data);
+            setPendingUsers(res.data || []);
         } catch (err) {
             console.error('Failed to load pending verifications:', err);
         } finally {
@@ -38,57 +38,63 @@ const AdminVerificationModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 3000,
-            background: 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(6px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-        }}>
-            <div className="glass-card" style={{ width: '100%', maxWidth: '680px', padding: '28px', position: 'relative', background: '#ffffff', maxHeight: '85vh', overflowY: 'auto' }}>
-                <button onClick={onClose} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl p-5 sm:p-8 shadow-2xl relative max-h-[88vh] overflow-y-auto">
+                
+                <button 
+                    onClick={onClose} 
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                >
+                    <X className="w-5 h-5" />
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                    <ShieldCheck size={24} color="var(--primary-emerald)" />
-                    <h2 style={{ fontSize: '1.4rem', color: '#0f172a' }}>Admin Legal Verification Portal</h2>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Admin Legal Verification Portal</h2>
+                        <p className="text-xs sm:text-sm text-slate-500">Review Seller & Broker government documents & RERA credentials</p>
+                    </div>
                 </div>
 
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '30px' }}>Loading pending applications...</div>
+                    <div className="text-center py-12 text-slate-500 text-sm">Loading pending applications...</div>
                 ) : pendingUsers.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                    <div className="text-center py-12 px-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
                         ✓ All Seller & Broker legal verifications have been reviewed and approved!
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {pendingUsers.map(user => (
-                            <div key={user.id} style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                        <h4 style={{ fontSize: '1.05rem', color: '#0f172a' }}>{user.name}</h4>
-                                        <span className="badge badge-emerald">ID: {user.verification_id}</span>
-                                        <span className="badge badge-gold">{user.role}</span>
+                    <div className="space-y-4">
+                        {pendingUsers.map(u => (
+                            <div key={u.id} className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="space-y-2 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="text-base font-bold text-slate-900">{u.name}</h4>
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            ID: {u.verification_id}
+                                        </span>
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                                            {u.role}
+                                        </span>
                                     </div>
-                                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                                        {user.email} • {user.phone}
+                                    <div className="text-xs text-slate-500">
+                                        {u.email} &bull; {u.phone}
                                     </div>
 
-                                    {/* Legal Details */}
-                                    <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}>
-                                        <div><strong>Govt ID ({user.govt_id_type}):</strong> {user.govt_id_number || 'N/A'}</div>
-                                        {user.role === 'broker' && <div><strong>RERA Registration:</strong> {user.rera_number || 'N/A'}</div>}
-                                        {user.role === 'seller' && <div><strong>Ownership Khata Ref:</strong> {user.ownership_proof_ref || 'N/A'}</div>}
+                                    {/* Legal Details Box */}
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
+                                        <div><strong>Govt ID ({u.govt_id_type}):</strong> {u.govt_id_number || 'N/A'}</div>
+                                        {u.role === 'broker' && <div><strong>RERA Registration:</strong> {u.rera_number || 'N/A'}</div>}
+                                        {u.role === 'seller' && <div><strong>Ownership Deed Ref:</strong> {u.ownership_proof_ref || 'N/A'}</div>}
                                     </div>
                                 </div>
 
-                                <button className="btn btn-primary" onClick={() => handleApprove(user.id)} style={{ fontSize: '0.85rem' }}>
-                                    <CheckCircle size={14} /> Approve Verification
+                                <button 
+                                    onClick={() => handleApprove(u.id)} 
+                                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all hover:scale-105 cursor-pointer shrink-0"
+                                >
+                                    <CheckCircle className="w-4 h-4" /> Approve Verification
                                 </button>
                             </div>
                         ))}

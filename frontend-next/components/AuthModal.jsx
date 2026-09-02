@@ -22,7 +22,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
     const [loginIdentifier, setLoginIdentifier] = useState('');
 
-    // Dual OTP inputs (User types the codes received via Email & SMS)
+    // Dual OTP inputs
     const [inputEmailOtp, setInputEmailOtp] = useState('');
     const [inputPhoneOtp, setInputPhoneOtp] = useState('');
 
@@ -98,10 +98,8 @@ const AuthModal = ({ mode = 'login', onClose }) => {
             });
 
             if (role === 'buyer') {
-                // Buyers are immediately registered and issued Verification ID
                 await completeFinalRegistration();
             } else {
-                // Sellers and Brokers proceed to Step 3 (Legal / RERA details)
                 setRegStep(3);
             }
         } catch (err) {
@@ -172,175 +170,112 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     };
 
     return (
-        <div style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 3000,
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-        }}>
-            <div className="glass-card" style={{ 
-                width: '100%', 
-                maxWidth: '480px', 
-                padding: '28px', 
-                position: 'relative', 
-                background: '#ffffff',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-            }}>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+            <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md sm:max-w-lg p-5 sm:p-7 shadow-2xl relative max-h-[92vh] overflow-y-auto">
                 
+                {/* Close Button */}
                 <button 
                     onClick={onClose}
-                    style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
                 >
-                    <X size={18} />
+                    <X className="w-5 h-5" />
                 </button>
 
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 10px auto',
-                        boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
-                    }}>
-                        <Building2 size={24} color="#ffffff" />
+                {/* Header */}
+                <div className="text-center mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center mx-auto mb-3 shadow-md shadow-emerald-600/25">
+                        <Building2 className="w-6 h-6 text-white" />
                     </div>
-                    <h2 style={{ fontSize: '1.45rem', color: '#0f172a' }}>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                         {isLogin ? 'Member Login' : 'Evertree Verified Registration'}
                     </h2>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {isLogin ? 'Log in with Email, Contact Number, or Verification ID' : 'Dual OTP Verification for Contact Number & Email'}
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                        {isLogin ? 'Log in with Email, Mobile Number, or Verification ID' : 'Dual OTP Verification for Mobile & Email'}
                     </p>
                 </div>
 
                 {error && (
-                    <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem', marginBottom: '14px', lineHeight: '1.4' }}>
+                    <div className="p-3 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm leading-relaxed">
                         ⚠️ {error}
                     </div>
                 )}
 
-                {/* ══════════════════════════════════════════════════════════
-                    STAGE: OFFICIAL VERIFICATION ID CARD (SUCCESS)
-                   ══════════════════════════════════════════════════════════ */}
+                {/* STAGE: OFFICIAL VERIFICATION ID CARD (SUCCESS) */}
                 {issuedUser ? (
-                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                        <div style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '50%',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 12px auto'
-                        }}>
-                            <CheckCircle2 size={36} />
+                    <div className="text-center py-2 space-y-4">
+                        <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                            <CheckCircle2 className="w-9 h-9" />
                         </div>
 
-                        <h3 style={{ color: '#0f172a', fontSize: '1.3rem', marginBottom: '4px' }}>
-                            Verification Complete!
-                        </h3>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                            Your contact number & email have been verified. Your official Evertree Verification ID has been issued:
-                        </p>
+                        <div>
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                                Verification Complete!
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                                Your mobile & email have been verified. Your official Evertree Verification ID has been issued:
+                            </p>
+                        </div>
 
                         {/* ID Badge Card */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-                            border: '2px solid #86efac',
-                            borderRadius: '12px',
-                            padding: '16px',
-                            marginBottom: '18px',
-                            boxShadow: '0 4px 15px rgba(5, 150, 105, 0.1)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.78rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase' }}>
+                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl p-4 shadow-sm space-y-3">
+                            <div className="flex justify-between items-center text-xs font-bold text-emerald-800 uppercase tracking-wider">
                                 <span>🌲 Official Member ID</span>
-                                <span className="badge badge-emerald">{issuedUser.role.toUpperCase()}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-extrabold text-[10px]">
+                                    {issuedUser.role}
+                                </span>
                             </div>
 
-                            <div style={{
-                                fontFamily: 'var(--font-primary)',
-                                fontSize: '1.6rem',
-                                fontWeight: '800',
-                                color: '#15803d',
-                                letterSpacing: '2px',
-                                padding: '8px',
-                                background: '#ffffff',
-                                borderRadius: '8px',
-                                border: '1px dashed #059669',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '10px',
-                                marginBottom: '12px'
-                            }}>
-                                <span>{issuedUser.verification_id}</span>
+                            <div className="flex items-center justify-center gap-3 p-3 bg-white rounded-xl border border-dashed border-emerald-500">
+                                <span className="font-mono text-xl sm:text-2xl font-black text-emerald-700 tracking-wider">
+                                    {issuedUser.verification_id}
+                                </span>
                                 <button
                                     onClick={handleCopyVerificationId}
-                                    style={{
-                                        background: copiedId ? '#dcfce7' : '#f1f5f9',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: '6px',
-                                        padding: '4px 8px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.72rem',
-                                        color: copiedId ? '#15803d' : '#475569'
-                                    }}
-                                    title="Copy ID"
+                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                                        copiedId
+                                            ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                                            : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                                    }`}
                                 >
-                                    {copiedId ? <Check size={12} /> : <Copy size={12} />}
+                                    {copiedId ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                     {copiedId ? 'Copied' : 'Copy'}
                                 </button>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem', textAlign: 'left' }}>
-                                <div style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>PHONE VERIFIED</span>
-                                    <span style={{ fontWeight: '700', color: '#0f172a' }}>✓ {issuedUser.phone}</span>
+                            <div className="grid grid-cols-2 gap-2 text-left text-xs">
+                                <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                    <span className="text-[10px] text-slate-400 font-bold block">MOBILE VERIFIED</span>
+                                    <span className="font-bold text-slate-800 truncate block">✓ {issuedUser.phone}</span>
                                 </div>
-                                <div style={{ background: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>EMAIL VERIFIED</span>
-                                    <span style={{ fontWeight: '700', color: '#0f172a' }}>✓ {issuedUser.email}</span>
+                                <div className="bg-white p-2 rounded-lg border border-slate-100">
+                                    <span className="text-[10px] text-slate-400 font-bold block">EMAIL VERIFIED</span>
+                                    <span className="font-bold text-slate-800 truncate block">✓ {issuedUser.email}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                            You can log in at any time using this <strong>Verification ID ({issuedUser.verification_id})</strong>, your email, or contact number.
+                        <p className="text-xs text-slate-500">
+                            You can log in at any time using this <strong>Verification ID ({issuedUser.verification_id})</strong>, your email, or mobile number.
                         </p>
 
                         <button 
-                            className="btn btn-primary" 
-                            style={{ width: '100%', padding: '12px', fontSize: '1rem' }} 
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer" 
                             onClick={onClose}
                         >
-                            Enter Evertree Portal <ArrowRight size={16} />
+                            Enter Evertree Portal <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
                 ) : isLogin ? (
                     
-                    /* ══════════════════════════════════════════════════════════
-                        STAGE: LOGIN FORM (Supports ID, Phone, Email)
-                       ══════════════════════════════════════════════════════════ */
-                    <form onSubmit={handleLoginSubmit}>
-                        <div className="form-group">
-                            <label><KeyRound size={12} /> Contact Number / Email / Verification ID</label>
+                    /* STAGE: LOGIN FORM */
+                    <form onSubmit={handleLoginSubmit} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                <KeyRound className="w-3.5 h-3.5 text-emerald-600" /> Mobile / Email / Verification ID
+                            </label>
                             <input 
                                 type="text" 
-                                className="form-control" 
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all" 
                                 placeholder="e.g. EVT-BUY-89241 or 9876543210 or name@evertree.in" 
                                 value={loginIdentifier} 
                                 onChange={(e) => setLoginIdentifier(e.target.value)} 
@@ -348,11 +283,13 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label><Lock size={12} /> Password</label>
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                <Lock className="w-3.5 h-3.5 text-emerald-600" /> Password
+                            </label>
                             <input 
                                 type="password" 
-                                className="form-control" 
+                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all" 
                                 placeholder="••••••••" 
                                 value={password} 
                                 onChange={(e) => setPassword(e.target.value)} 
@@ -362,19 +299,18 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
                         <button 
                             type="submit" 
-                            className="btn btn-primary" 
                             disabled={loading}
-                            style={{ width: '100%', padding: '10px', marginTop: '6px', fontSize: '0.95rem' }}
+                            className="w-full py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60"
                         >
                             {loading ? 'Logging in...' : 'Log In'}
                         </button>
 
-                        <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        <div className="text-center pt-2 text-xs sm:text-sm text-slate-500">
                             Don't have an account?{' '}
                             <button 
                                 type="button"
                                 onClick={() => { setIsLogin(false); setRegStep(1); }}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-emerald)', fontWeight: '700', cursor: 'pointer' }}
+                                className="font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
                             >
                                 Create Account with OTP
                             </button>
@@ -383,27 +319,31 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
                 ) : (
 
-                    /* ══════════════════════════════════════════════════════════
-                        STAGE: MULTI-STEP VERIFICATION & REGISTRATION
-                       ══════════════════════════════════════════════════════════ */
-                    <div>
+                    /* STAGE: MULTI-STEP VERIFICATION & REGISTRATION */
+                    <div className="space-y-4">
                         {/* Step Indicators */}
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
-                            <span className={`badge ${regStep === 1 ? 'badge-emerald' : 'badge-blue'}`}>1. Details & Role</span>
-                            <span className={`badge ${regStep === 2 ? 'badge-emerald' : 'badge-blue'}`}>2. Dual OTP</span>
+                        <div className="flex justify-center items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${regStep === 1 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                1. Details
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${regStep === 2 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                2. Dual OTP
+                            </span>
                             {role !== 'buyer' && (
-                                <span className={`badge ${regStep === 3 ? 'badge-emerald' : 'badge-blue'}`}>3. Legal Docs</span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${regStep === 3 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                    3. Legal Docs
+                                </span>
                             )}
                         </div>
 
                         {/* STEP 1: Details & Role Selection */}
                         {regStep === 1 && (
-                            <div>
-                                <div style={{ marginBottom: '14px' }}>
-                                    <label style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                            <div className="space-y-3.5">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                         SELECT ACCOUNT ROLE
                                     </label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                                    <div className="grid grid-cols-3 gap-2">
                                         {[
                                             { id: 'buyer', label: 'Buyer', icon: User, desc: 'Buy & Rent' },
                                             { id: 'seller', label: 'Seller', icon: ShieldCheck, desc: 'Direct Owner' },
@@ -416,176 +356,154 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                                      type="button"
                                                      key={item.id}
                                                      onClick={() => setRole(item.id)}
-                                                     style={{
-                                                         padding: '10px 4px',
-                                                         borderRadius: 'var(--radius-md)',
-                                                         border: active ? '2px solid var(--primary-emerald)' : '1px solid #cbd5e1',
-                                                         background: active ? '#dcfce7' : '#f8fafc',
-                                                         color: active ? '#15803d' : 'var(--text-muted)',
-                                                         display: 'flex',
-                                                         flexDirection: 'column',
-                                                         alignItems: 'center',
-                                                         gap: '2px',
-                                                         cursor: 'pointer',
-                                                         fontSize: '0.78rem',
-                                                         fontWeight: '700',
-                                                         transition: 'all 0.2s ease'
-                                                     }}
+                                                     className={`p-2.5 rounded-xl border text-center flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                                                         active 
+                                                             ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-600/20' 
+                                                             : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                                     }`}
                                                  >
-                                                     <Icon size={18} />
-                                                     <span>{item.label}</span>
-                                                     <span style={{ fontSize: '0.65rem', fontWeight: '400', opacity: 0.85 }}>{item.desc}</span>
+                                                     <Icon className="w-5 h-5" />
+                                                     <span className="text-xs font-bold">{item.label}</span>
+                                                     <span className="text-[10px] text-slate-400 font-normal">{item.desc}</span>
                                                  </button>
                                              );
                                          })}
                                     </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label><User size={12} /> Full Name *</label>
-                                    <input type="text" className="form-control" placeholder="e.g. Ramesh Kumar" value={name} onChange={(e) => setName(e.target.value)} required />
+                                <div className="space-y-1">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        <User className="w-3.5 h-3.5 text-emerald-600" /> Full Name *
+                                    </label>
+                                    <input type="text" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" placeholder="e.g. Ramesh Kumar" value={name} onChange={(e) => setName(e.target.value)} required />
                                 </div>
 
-                                <div className="form-group">
-                                    <label><Mail size={12} /> Email Address (For Email OTP) *</label>
-                                    <input type="email" className="form-control" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                                <div className="space-y-1">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        <Mail className="w-3.5 h-3.5 text-emerald-600" /> Email Address (For OTP) *
+                                    </label>
+                                    <input type="email" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                                 </div>
 
-                                <div className="form-group">
-                                    <label><Phone size={12} /> Contact Number (For SMS OTP) *</label>
-                                    <input type="tel" className="form-control" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                                <div className="space-y-1">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        <Phone className="w-3.5 h-3.5 text-emerald-600" /> Mobile Number (For SMS OTP) *
+                                    </label>
+                                    <input type="tel" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} required />
                                 </div>
 
-                                <div className="form-group">
-                                    <label><Lock size={12} /> Password *</label>
-                                    <input type="password" className="form-control" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                                <div className="space-y-1">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                        <Lock className="w-3.5 h-3.5 text-emerald-600" /> Password *
+                                    </label>
+                                    <input type="password" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                                 </div>
 
                                 <button 
                                     type="button" 
-                                    className="btn btn-primary" 
                                     disabled={loading}
-                                    style={{ width: '100%', marginTop: '6px', padding: '12px' }}
+                                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60"
                                     onClick={handleSendDualOtp}
                                 >
-                                    <Send size={14} /> {loading ? 'Sending OTP Codes...' : 'Send OTP to Email & Phone →'}
+                                    <Send className="w-4 h-4" /> {loading ? 'Sending OTP Codes...' : 'Send OTP to Email & Phone →'}
                                 </button>
                             </div>
                         )}
 
-                        {/* STEP 2: DUAL OTP VERIFICATION (Enter Codes received via Email & SMS) */}
+                        {/* STEP 2: DUAL OTP VERIFICATION */}
                         {regStep === 2 && (
-                            <div style={{ padding: '4px 0' }}>
-                                
-                                {/* OTP Dispatch Notice */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-                                    border: '1px solid #86efac',
-                                    borderRadius: '10px',
-                                    padding: '14px',
-                                    marginBottom: '16px',
-                                    fontSize: '0.82rem',
-                                    color: '#166534'
-                                }}>
-                                    <div style={{ fontWeight: '700', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <CheckCircle2 size={16} color="#059669" /> Verification Codes Dispatched:
+                            <div className="space-y-4">
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 space-y-1.5">
+                                    <div className="font-bold flex items-center gap-1.5">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verification Codes Dispatched:
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.78rem' }}>
-                                        <div>✉️ OTP sent to your Email: <strong>{email}</strong></div>
-                                        <div>📱 SMS OTP sent to your Mobile: <strong>{phone}</strong></div>
+                                    <div className="text-emerald-800 space-y-0.5">
+                                        <div>✉️ Email OTP sent to: <strong>{email}</strong></div>
+                                        <div>📱 SMS OTP sent to: <strong>{phone}</strong></div>
                                     </div>
                                 </div>
 
-                                {/* Dual Input Grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                                    
-                                    {/* Email OTP Field */}
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Mail size={12} /> Email OTP
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 uppercase">
+                                            <Mail className="w-3 h-3 text-emerald-600" /> Email OTP
                                         </label>
                                         <input 
                                             type="text" 
                                             maxLength="6" 
-                                            className="form-control" 
+                                            className="w-full py-2.5 text-center text-lg font-black tracking-widest bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" 
                                             placeholder="••••" 
                                             value={inputEmailOtp} 
                                             onChange={(e) => setInputEmailOtp(e.target.value)} 
-                                            style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', fontWeight: '800' }}
                                         />
                                     </div>
 
-                                    {/* Phone OTP Field */}
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Smartphone size={12} /> SMS Phone OTP
+                                    <div className="space-y-1">
+                                        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 uppercase">
+                                            <Smartphone className="w-3 h-3 text-emerald-600" /> Mobile OTP
                                         </label>
                                         <input 
                                             type="text" 
                                             maxLength="6" 
-                                            className="form-control" 
+                                            className="w-full py-2.5 text-center text-lg font-black tracking-widest bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" 
                                             placeholder="••••" 
                                             value={inputPhoneOtp} 
                                             onChange={(e) => setInputPhoneOtp(e.target.value)} 
-                                            style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', fontWeight: '800' }}
                                         />
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                                <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
-                                        style={{ flex: 1, padding: '8px', fontSize: '0.8rem' }}
+                                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200"
                                         onClick={() => setRegStep(1)}
                                     >
                                         Change Phone / Email
                                     </button>
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
-                                        style={{ flex: 1, padding: '8px', fontSize: '0.8rem' }}
+                                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-1"
                                         onClick={handleSendDualOtp}
                                     >
-                                        <RefreshCw size={12} /> Resend OTPs
+                                        <RefreshCw className="w-3 h-3" /> Resend OTPs
                                     </button>
                                 </div>
 
                                 <button 
                                     type="button" 
-                                    className="btn btn-primary" 
                                     disabled={loading}
-                                    style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }} 
+                                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60" 
                                     onClick={handleVerifyDualOtp}
                                 >
-                                    <CheckCircle2 size={16} /> {loading ? 'Verifying OTPs...' : (role === 'buyer' ? 'Verify & Issue Verification ID' : 'Verify OTPs & Continue to Legal Info →')}
+                                    <CheckCircle2 className="w-4 h-4" /> {loading ? 'Verifying OTPs...' : (role === 'buyer' ? 'Verify & Issue Verification ID' : 'Verify OTPs & Continue to Legal Info →')}
                                 </button>
                             </div>
                         )}
 
                         {/* STEP 3: Legal Requirements for Seller & Broker */}
                         {regStep === 3 && (
-                            <form onSubmit={handleRegisterSubmit}>
+                            <form onSubmit={handleRegisterSubmit} className="space-y-3">
                                 {role === 'seller' ? (
-                                    <div>
-                                        <div className="badge badge-gold" style={{ marginBottom: '12px', padding: '6px 10px' }}>
-                                            <Award size={14} /> Direct Seller Verification Requirements
+                                    <div className="space-y-3">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                            <Award className="w-3.5 h-3.5" /> Direct Seller Verification
                                         </div>
 
-                                        <div className="form-group">
-                                            <label><FileText size={12} /> Government ID Proof Type *</label>
-                                            <select className="form-control" value={govtIdType} onChange={(e) => setGovtIdType(e.target.value)}>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">Government ID Proof Type *</label>
+                                            <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" value={govtIdType} onChange={(e) => setGovtIdType(e.target.value)}>
                                                 <option value="Aadhaar Card">Aadhaar Card</option>
                                                 <option value="PAN Card">PAN Card</option>
                                                 <option value="Passport">Passport</option>
                                             </select>
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Government ID Number *</label>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">Government ID Number *</label>
                                             <input 
                                                 type="text" 
-                                                className="form-control" 
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" 
                                                 placeholder="e.g. 5482-9012-3456 or ABCDE1234F" 
                                                 value={govtIdNumber} 
                                                 onChange={(e) => setGovtIdNumber(e.target.value)} 
@@ -593,11 +511,11 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                             />
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Property Ownership Deed / Khata Reference No. *</label>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">Property Ownership Deed / Khata Ref *</label>
                                             <input 
                                                 type="text" 
-                                                className="form-control" 
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" 
                                                 placeholder="e.g. KHT-BLR-2024-8812 / Sale Deed No." 
                                                 value={ownershipProofRef} 
                                                 onChange={(e) => setOwnershipProofRef(e.target.value)} 
@@ -606,16 +524,16 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div>
-                                        <div className="badge badge-emerald" style={{ marginBottom: '12px', padding: '6px 10px' }}>
-                                            <Award size={14} /> RERA & Real Estate Broker License
+                                    <div className="space-y-3">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            <Award className="w-3.5 h-3.5" /> RERA & Broker License
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>RERA Registration Number * (Mandatory)</label>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">RERA Registration Number *</label>
                                             <input 
                                                 type="text" 
-                                                className="form-control" 
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" 
                                                 placeholder="e.g. PRM/KA/RERA/1251/310/PR/180521/002341" 
                                                 value={reraNumber} 
                                                 onChange={(e) => setReraNumber(e.target.value)} 
@@ -623,20 +541,20 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                             />
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Government ID Type *</label>
-                                            <select className="form-control" value={govtIdType} onChange={(e) => setGovtIdType(e.target.value)}>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">Government ID Type *</label>
+                                            <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" value={govtIdType} onChange={(e) => setGovtIdType(e.target.value)}>
                                                 <option value="PAN Card">PAN Card</option>
                                                 <option value="GSTIN">GSTIN Certificate</option>
                                                 <option value="Aadhaar Card">Aadhaar Card</option>
                                             </select>
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>ID / GST Number *</label>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">ID / GST Number *</label>
                                             <input 
                                                 type="text" 
-                                                className="form-control" 
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" 
                                                 placeholder="e.g. 29ABCDE1234F1Z5" 
                                                 value={govtIdNumber} 
                                                 onChange={(e) => setGovtIdNumber(e.target.value)} 
@@ -644,11 +562,11 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                             />
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Agency License Number (Optional)</label>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-700 uppercase">Agency License Number (Optional)</label>
                                             <input 
                                                 type="text" 
-                                                className="form-control" 
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900" 
                                                 placeholder="e.g. LIC-BRK-2024-991" 
                                                 value={agencyLicense} 
                                                 onChange={(e) => setAgencyLicense(e.target.value)} 
@@ -657,20 +575,18 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                     </div>
                                 )}
 
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                <div className="flex gap-2 pt-2">
                                     <button 
                                         type="button" 
-                                        className="btn btn-secondary" 
-                                        style={{ padding: '10px' }} 
+                                        className="py-2.5 px-4 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" 
                                         onClick={() => setRegStep(2)}
                                     >
                                         Back
                                     </button>
                                     <button 
                                         type="submit" 
-                                        className="btn btn-primary" 
                                         disabled={loading}
-                                        style={{ flex: 1, padding: '10px' }}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all disabled:opacity-60"
                                     >
                                         {loading ? 'Submitting...' : 'Complete & Issue Verification ID'}
                                     </button>
@@ -678,18 +594,19 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                             </form>
                         )}
 
-                        <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        <div className="text-center pt-2 text-xs sm:text-sm text-slate-500">
                             Already registered?{' '}
                             <button 
                                 type="button"
                                 onClick={() => setIsLogin(true)}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--primary-emerald)', fontWeight: '700', cursor: 'pointer' }}
+                                className="font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
                             >
                                 Member Login
                             </button>
                         </div>
                     </div>
                 )}
+
             </div>
         </div>
     );

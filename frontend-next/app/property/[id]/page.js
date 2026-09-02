@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, PhoneCall, MessageSquare, Share2, FileText, Download, ArrowLeft, Eye } from 'lucide-react';
+import { MapPin, PhoneCall, MessageSquare, Share2, FileText, Download, ArrowLeft, Eye, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { propertyAPI } from '../../../services/api';
 import MapPicker from '../../../components/MapPicker';
 import NearbyPlaces from '../../../components/NearbyPlaces';
@@ -63,18 +63,23 @@ export default function PropertyPage({ onOpenChat }) {
 
     if (loading) {
         return (
-            <div className="container section-padding" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                Loading property details...
+            <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-500">
+                <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="font-semibold text-sm">Loading verified property details...</p>
             </div>
         );
     }
 
     if (!property) {
         return (
-            <div className="container section-padding" style={{ textAlign: 'center' }}>
-                <h2>Property not found.</h2>
-                <button className="btn btn-secondary" onClick={() => router.push('/')} style={{ marginTop: '16px' }}>
-                    <ArrowLeft size={16} /> Back to Search
+            <div className="max-w-xl mx-auto px-4 py-20 text-center">
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Property not found</h2>
+                <p className="text-sm text-slate-500 mb-6">The listing you are looking for might have been sold or removed.</p>
+                <button 
+                    onClick={() => router.push('/')} 
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                >
+                    <ArrowLeft className="w-4 h-4" /> Back to Search
                 </button>
             </div>
         );
@@ -87,195 +92,221 @@ export default function PropertyPage({ onOpenChat }) {
     const activeMedia = mediaList[selectedMediaIdx] || mediaList[0];
 
     return (
-        <div className="container section-padding">
-            <button className="btn btn-secondary" onClick={() => router.push('/')} style={{ marginBottom: '20px' }}>
-                <ArrowLeft size={16} /> Back to Search
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+            
+            {/* Back Button */}
+            <button 
+                onClick={() => router.push('/')} 
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 shadow-2xs transition-all cursor-pointer"
+            >
+                <ArrowLeft className="w-4 h-4" /> Back to Search
             </button>
 
             {/* Title & Price Header */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-                        <span className="badge badge-emerald">{property.category}</span>
-                        <span className="badge badge-blue">{property.property_type}</span>
-                        {property.bhk > 0 && <span className="badge badge-gold">{property.bhk} BHK</span>}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+                <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            {property.category}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                            {property.property_type?.replace('_', ' ')}
+                        </span>
+                        {property.bhk > 0 && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                                {property.bhk} BHK
+                            </span>
+                        )}
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Legal Verified
+                        </span>
                     </div>
-                    <h1 style={{ fontSize: '2rem', color: '#0f172a', marginBottom: '4px' }}>{property.title}</h1>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                        <MapPin size={16} color="var(--primary-emerald)" />
-                        {property.address || `${property.city}, ${property.district}`}
+
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+                        {property.title}
+                    </h1>
+
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500">
+                        <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{property.address || `${property.city}, ${property.district}`}</span>
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-emerald)', fontFamily: 'var(--font-primary)' }}>
+                <div className="text-left md:text-right shrink-0">
+                    <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-emerald-600">
                         ₹ {Number(property.price).toLocaleString('en-IN')}
+                        {property.category === 'rent' && <span className="text-xs sm:text-sm text-slate-500 font-normal"> / month</span>}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        <Eye size={12} /> {property.views_count || 1} views
+                    <div className="flex items-center md:justify-end gap-1 text-xs text-slate-400 mt-1">
+                        <Eye className="w-3.5 h-3.5" /> {property.views_count || 1} views
                     </div>
                 </div>
             </div>
 
-            {/* Gallery & Actions Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+            {/* Gallery & Sidebar Grid (Mobile: 1 col, Laptop: 3 cols grid with 2 cols main, 1 col sidebar) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                 
-                {/* Visual Media Viewer */}
-                <div>
-                    <div className="glass-card" style={{ overflow: 'hidden', marginBottom: '12px' }}>
-                        <div style={{ height: '360px', width: '100%', position: 'relative', background: '#000' }}>
+                {/* Main Media & Overview Column */}
+                <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* Visual Media Viewer */}
+                    <div className="bg-slate-900 rounded-3xl overflow-hidden shadow-md border border-slate-200">
+                        <div className="h-64 sm:h-96 md:h-[460px] w-full flex items-center justify-center bg-black">
                             {activeMedia.media_type === 'video' ? (
-                                <video src={activeMedia.file_url} controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                <video src={activeMedia.file_url} controls className="w-full h-full object-contain" />
                             ) : (
-                                <img src={activeMedia.file_url} alt={property.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={activeMedia.file_url} alt={property.title} className="w-full h-full object-cover" />
                             )}
                         </div>
                     </div>
 
-                    {/* Thumbnail gallery */}
+                    {/* Thumbnail Gallery */}
                     {mediaList.length > 1 && (
-                        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                             {mediaList.map((m, idx) => (
-                                <div 
+                                <button 
                                     key={idx} 
                                     onClick={() => setSelectedMediaIdx(idx)}
-                                    style={{
-                                        width: '72px',
-                                        height: '54px',
-                                        borderRadius: '6px',
-                                        overflow: 'hidden',
-                                        cursor: 'pointer',
-                                        border: selectedMediaIdx === idx ? '2px solid var(--primary-emerald)' : '1px solid #e2e8f0',
-                                        opacity: selectedMediaIdx === idx ? 1 : 0.6
-                                    }}
+                                    className={`w-20 h-16 sm:w-24 sm:h-18 rounded-xl overflow-hidden shrink-0 transition-all cursor-pointer ${
+                                        selectedMediaIdx === idx 
+                                            ? 'ring-3 ring-emerald-500 opacity-100 scale-105' 
+                                            : 'opacity-60 hover:opacity-100 border border-slate-200'
+                                    }`}
                                 >
-                                    <img src={m.file_url} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                </div>
+                                    <img src={m.file_url} alt="thumbnail" className="w-full h-full object-cover" />
+                                </button>
                             ))}
                         </div>
                     )}
 
-                    {/* Description */}
-                    <div className="glass-card" style={{ padding: '20px', marginTop: '16px' }}>
-                        <h3 style={{ fontSize: '1.1rem', color: '#0f172a', marginBottom: '8px' }}>Property Overview</h3>
-                        <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '0.9rem' }}>
-                            {property.description || 'Spacious property with prime layout and high-yield connectivity.'}
+                    {/* Description Overview */}
+                    <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs">
+                        <h3 className="text-lg font-bold text-slate-900 mb-3">Property Overview</h3>
+                        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                            {property.description || 'Spacious property with prime layout and high-yield connectivity in prime metropolitan region.'}
                         </p>
                     </div>
 
-                    {/* Property Docs */}
+                    {/* Property Documents */}
                     {property.docs && property.docs.length > 0 && (
-                        <div className="glass-card" style={{ padding: '20px', marginTop: '16px' }}>
-                            <h3 style={{ fontSize: '1.1rem', color: '#0f172a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <FileText size={18} color="var(--accent-gold)" /> Property Documents
+                        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs">
+                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-amber-600" /> Verified Legal Documentation
                             </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {property.docs.map((doc, idx) => (
                                     <a 
                                         key={idx} 
                                         href={doc.file_url} 
                                         target="_blank" 
                                         rel="noreferrer"
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '8px 12px',
-                                            background: '#f8fafc',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '6px',
-                                            color: '#0f172a',
-                                            textDecoration: 'none',
-                                            fontSize: '0.85rem'
-                                        }}
+                                        className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl transition-all"
                                     >
-                                        <span>📄 {doc.title || 'Document PDF'}</span>
-                                        <Download size={14} color="var(--primary-emerald)" />
+                                        <div className="flex items-center gap-2 truncate text-xs sm:text-sm font-semibold text-slate-800">
+                                            <span>📄</span>
+                                            <span className="truncate">{doc.title || 'Property Document PDF'}</span>
+                                        </div>
+                                        <Download className="w-4 h-4 text-emerald-600 shrink-0 ml-2" />
                                     </a>
                                 ))}
                             </div>
                         </div>
                     )}
+
+                    {/* Nearby Infrastructure & Amenities */}
+                    <NearbyPlaces amenities={property.amenities} />
+
                 </div>
 
-                {/* Seller Actions & Map */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div className="glass-card" style={{ padding: '20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                {/* Sticky Contact & Map Sidebar */}
+                <div className="space-y-6">
+                    
+                    {/* Seller Card & Actions */}
+                    <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs sticky top-24">
+                        
+                        {/* Seller Pill */}
+                        <div className="flex items-center gap-3.5 pb-5 mb-5 border-b border-slate-100">
                             <img 
                                 src={property.seller_avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'} 
                                 alt={property.seller_name} 
-                                style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                                className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-500/30"
                             />
                             <div>
-                                <div style={{ fontSize: '1rem', fontWeight: '700', color: '#0f172a' }}>{property.seller_name}</div>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Verified {property.seller_role}</div>
+                                <div className="font-bold text-slate-900 text-base">{property.seller_name}</div>
+                                <div className="text-xs text-slate-500 capitalize flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    Verified {property.seller_role}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* Action Buttons */}
+                        <div className="space-y-2.5">
                             <button 
-                                className="btn btn-primary" 
-                                style={{ width: '100%', padding: '10px' }}
                                 onClick={() => {
                                     if (onOpenChat) onOpenChat(property);
                                     else openChat(property);
                                 }}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                             >
-                                <MessageSquare size={16} /> Live Chat
+                                <MessageSquare className="w-4 h-4" /> Live Chat with Owner
                             </button>
 
                             <a 
                                 href={`tel:${property.seller_phone}`} 
-                                className="btn btn-secondary" 
-                                style={{ width: '100%', padding: '10px', textDecoration: 'none' }}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all"
                             >
-                                <PhoneCall size={16} color="var(--accent-gold)" /> Call ({property.seller_phone})
+                                <PhoneCall className="w-4 h-4 text-amber-600" /> Call ({property.seller_phone})
                             </a>
 
                             <button 
-                                className="btn btn-whatsapp" 
-                                style={{ width: '100%', padding: '10px' }}
                                 onClick={handleWhatsAppShare}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-sm transition-all cursor-pointer"
                             >
-                                <Share2 size={16} /> Share WhatsApp
+                                <Share2 className="w-4 h-4" /> Share on WhatsApp
                             </button>
                         </div>
 
-                        {/* Quick Enquiry */}
-                        <form onSubmit={handleSendEnquiry} style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                            <div className="form-group">
-                                <label>Direct Message</label>
+                        {/* Quick Enquiry Form */}
+                        <form onSubmit={handleSendEnquiry} className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-700 uppercase">Direct Enquiry Message</label>
                                 <textarea 
-                                    className="form-control" 
-                                    rows="2" 
+                                    rows={2} 
                                     placeholder="I am interested in this property..." 
                                     value={enquiryMessage} 
                                     onChange={(e) => setEnquiryMessage(e.target.value)} 
                                     required 
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
-                            <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '8px' }}>
-                                Send Enquiry
+                            <button 
+                                type="submit" 
+                                className="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 cursor-pointer"
+                            >
+                                Send Quick Enquiry
                             </button>
                             {enquirySent && (
-                                <div style={{ marginTop: '6px', color: '#059669', fontSize: '0.78rem', textAlign: 'center' }}>
+                                <div className="text-xs text-emerald-600 font-bold text-center">
                                     ✓ Enquiry sent to seller!
                                 </div>
                             )}
                         </form>
+
                     </div>
 
+                    {/* Property Map Pin */}
                     <MapPicker lat={property.latitude} lng={property.longitude} isEditable={false} />
+
                 </div>
+
             </div>
 
-            <NearbyPlaces amenities={property.amenities} />
-
-            <div style={{ marginTop: '30px' }}>
+            {/* EMI Calculator Section */}
+            <div className="pt-4">
                 <EmiCalculator defaultPrincipal={property.price} />
             </div>
+
         </div>
     );
 }

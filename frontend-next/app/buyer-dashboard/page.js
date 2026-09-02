@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Heart } from 'lucide-react';
+import Link from 'next/link';
+import { Heart, Search, ArrowRight } from 'lucide-react';
 import { propertyAPI } from '../../services/api';
 import PropertyCard from '../../components/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
@@ -22,7 +23,7 @@ export default function BuyerDashboardPage({ onOpenChat }) {
         setLoading(true);
         try {
             const res = await propertyAPI.getFavorites();
-            setFavorites(res.data);
+            setFavorites(res.data || []);
         } catch (err) {
             console.error('Failed to load favorites:', err);
         } finally {
@@ -31,33 +32,65 @@ export default function BuyerDashboardPage({ onOpenChat }) {
     };
 
     return (
-        <div className="container section-padding">
-            <div className="glass-card" style={{ padding: '24px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+            
+            {/* User Profile Header Card */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
                 <img 
                     src={user?.avatar_url || 'https://images.unsplash.com/photo-1517841905240-472988babdf9'} 
                     alt={user?.name || 'Buyer'} 
-                    style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-emerald)' }} 
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-emerald-500/20" 
                 />
-                <div>
-                    <h1 style={{ fontSize: '1.4rem', color: '#0f172a' }}>{user ? `${user.name}'s Wishlist` : 'Buyer Dashboard'}</h1>
-                    <span className="badge badge-emerald">Wishlist & Saved Properties</span>
+                <div className="space-y-1">
+                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                        {user ? `${user.name}'s Wishlist` : 'Buyer Dashboard'}
+                    </h1>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            Verified Buyer Account
+                        </span>
+                        <span className="text-xs text-slate-500">
+                            ID: {user?.verification_id || 'EVT-BUY-VERIFIED'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div className="section-header" style={{ textAlign: 'left', marginBottom: '20px' }}>
-                <h2>Saved Favorite Properties</h2>
+            {/* Section Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Saved Favorite Properties</h2>
+                    <p className="text-xs sm:text-sm text-slate-500">Easily access your shortlisted properties and contact sellers</p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                    {favorites.length} Saved
+                </span>
             </div>
 
+            {/* Content State */}
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Loading favorites...</div>
+                <div className="text-center py-16 text-slate-500 text-sm">
+                    <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    Loading wishlist...
+                </div>
             ) : favorites.length === 0 ? (
-                <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
-                    <Heart size={40} color="var(--text-muted)" style={{ marginBottom: '8px' }} />
-                    <h3 style={{ color: '#0f172a', marginBottom: '4px' }}>No favorites saved yet</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Browse listings and click the heart icon on any property to save it here.</p>
+                <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-14 text-center max-w-lg mx-auto shadow-xs">
+                    <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">
+                        <Heart className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1.5">No favorites saved yet</h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mb-6">
+                        Browse listings and click the heart icon on any property to bookmark it here for quick comparison.
+                    </p>
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all"
+                    >
+                        <Search className="w-4 h-4" /> Explore Properties <ArrowRight className="w-4 h-4" />
+                    </Link>
                 </div>
             ) : (
-                <div className="grid-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
                     {favorites.map(property => (
                         <PropertyCard 
                             key={property.id} 

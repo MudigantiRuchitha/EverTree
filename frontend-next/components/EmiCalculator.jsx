@@ -37,29 +37,21 @@ const EmiCalculator = ({ defaultPrincipal = 5000000 }) => {
     };
 
     return (
-        <div className="glass-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: 'rgba(217, 119, 6, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <Calculator size={18} color="var(--accent-gold)" />
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <Calculator className="w-5 h-5" />
                 </div>
-                <h3 style={{ fontSize: '1.1rem', color: '#0f172a' }}>Loan EMI Calculator</h3>
+                <h3 className="text-lg font-bold text-slate-900">Loan EMI Calculator</h3>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                {/* Sliders */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Sliders Form */}
+                <div className="space-y-4 sm:space-y-5">
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px', color: 'var(--text-muted)' }}>
-                            <span>Loan Amount</span>
-                            <span style={{ color: '#0f172a', fontWeight: '700' }}>{formatCurrency(principal)}</span>
+                        <div className="flex justify-between text-xs sm:text-sm font-semibold mb-1.5">
+                            <span className="text-slate-500">Loan Amount</span>
+                            <span className="text-slate-900 font-bold">{formatCurrency(principal)}</span>
                         </div>
                         <input 
                             type="range" 
@@ -68,14 +60,14 @@ const EmiCalculator = ({ defaultPrincipal = 5000000 }) => {
                             step="100000" 
                             value={principal} 
                             onChange={(e) => setPrincipal(e.target.value)}
-                            style={{ width: '100%', accentColor: 'var(--primary-emerald)' }}
+                            className="w-full accent-emerald-600 h-2 bg-slate-100 rounded-lg cursor-pointer"
                         />
                     </div>
 
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px', color: 'var(--text-muted)' }}>
-                            <span>Interest Rate (% p.a.)</span>
-                            <span style={{ color: '#0f172a', fontWeight: '700' }}>{rate}%</span>
+                        <div className="flex justify-between text-xs sm:text-sm font-semibold mb-1.5">
+                            <span className="text-slate-500">Interest Rate (% p.a.)</span>
+                            <span className="text-slate-900 font-bold">{rate}%</span>
                         </div>
                         <input 
                             type="range" 
@@ -84,14 +76,14 @@ const EmiCalculator = ({ defaultPrincipal = 5000000 }) => {
                             step="0.1" 
                             value={rate} 
                             onChange={(e) => setRate(e.target.value)}
-                            style={{ width: '100%', accentColor: 'var(--accent-gold)' }}
+                            className="w-full accent-amber-600 h-2 bg-slate-100 rounded-lg cursor-pointer"
                         />
                     </div>
 
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px', color: 'var(--text-muted)' }}>
-                            <span>Tenure</span>
-                            <span style={{ color: '#0f172a', fontWeight: '700' }}>{tenureYears} Years</span>
+                        <div className="flex justify-between text-xs sm:text-sm font-semibold mb-1.5">
+                            <span className="text-slate-500">Tenure</span>
+                            <span className="text-slate-900 font-bold">{tenureYears} Years</span>
                         </div>
                         <input 
                             type="range" 
@@ -100,43 +92,32 @@ const EmiCalculator = ({ defaultPrincipal = 5000000 }) => {
                             step="1" 
                             value={tenureYears} 
                             onChange={(e) => setTenureYears(e.target.value)}
-                            style={{ width: '100%', accentColor: 'var(--accent-blue)' }}
+                            className="w-full accent-blue-600 h-2 bg-slate-100 rounded-lg cursor-pointer"
                         />
                     </div>
                 </div>
 
                 {/* Result Card */}
-                <div style={{
-                    background: '#f8fafc',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '16px',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        MONTHLY EMI
-                    </div>
-                    <div style={{
-                        fontFamily: 'var(--font-primary)',
-                        fontSize: '1.8rem',
-                        fontWeight: '800',
-                        color: 'var(--primary-emerald)',
-                        margin: '4px 0 12px 0'
-                    }}>
+                <div className="bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-2xl p-5 border border-slate-200 flex flex-col justify-center text-center">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        ESTIMATED MONTHLY EMI
+                    </span>
+                    <div className="text-3xl sm:text-4xl font-black text-emerald-600 my-2">
                         {formatCurrency(emiDetails.monthlyEmi)}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #e2e8f0', paddingTop: '10px', fontSize: '0.82rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>Principal:</span>
-                            <span style={{ color: '#0f172a' }}>{formatCurrency(principal)}</span>
+                    <div className="space-y-2 border-t border-slate-200/80 pt-4 mt-2 text-xs sm:text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Principal Amount:</span>
+                            <span className="text-slate-900 font-bold">{formatCurrency(principal)}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--text-muted)' }}>Total Interest:</span>
-                            <span style={{ color: 'var(--accent-gold)' }}>{formatCurrency(emiDetails.totalInterest)}</span>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Total Interest:</span>
+                            <span className="text-amber-600 font-bold">{formatCurrency(emiDetails.totalInterest)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-dashed border-slate-200 pt-2">
+                            <span className="text-slate-600 font-bold">Total Payment:</span>
+                            <span className="text-slate-900 font-bold">{formatCurrency(emiDetails.totalPayment)}</span>
                         </div>
                     </div>
                 </div>

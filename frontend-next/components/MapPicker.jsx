@@ -20,56 +20,34 @@ const MapPicker = ({ lat = 12.9716, lng = 77.5946, isEditable = false, onChangeL
     };
 
     return (
-        <div className="glass-card" style={{ padding: '16px', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: '#0f172a', fontSize: '0.95rem' }}>
-                    <MapPin size={16} color="var(--primary-emerald)" />
-                    {isEditable ? 'Google Maps Location Picker' : 'Property Location Pin'}
+        <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                <div className="flex items-center gap-2 font-bold text-slate-900 text-sm sm:text-base">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>{isEditable ? 'Google Maps Location Picker' : 'Property Location Pin'}</span>
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <div className="text-xs text-slate-500 font-mono">
                     Lat: {Number(currentLat).toFixed(4)}, Lng: {Number(currentLng).toFixed(4)}
                 </div>
             </div>
 
-            <div style={{
-                position: 'relative',
-                height: '220px',
-                width: '100%',
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
-                backgroundSize: '16px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column'
-            }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateY(-10px)' }}>
-                    <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(5, 150, 105, 0.15)',
-                        border: '2px solid var(--primary-emerald)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 0 15px rgba(5, 150, 105, 0.4)'
-                    }}>
-                        <Navigation size={20} color="var(--primary-emerald)" />
+            <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center flex-col [background-image:radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]">
+                <div className="flex flex-col items-center -translate-y-2">
+                    <div className="w-11 h-11 rounded-full bg-emerald-100 border-2 border-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/30">
+                        <Navigation className="w-5 h-5 text-emerald-700" />
                     </div>
-                    <span className="badge badge-emerald" style={{ marginTop: '6px' }}>Pin Active</span>
+                    <span className="mt-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-xs">
+                        Pin Active
+                    </span>
                 </div>
 
-                <div style={{ position: 'absolute', bottom: '8px', left: '10px', right: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <span>Map View</span>
+                <div className="absolute bottom-2 left-3 right-3 flex justify-between text-xs text-slate-500">
+                    <span>Map View Preview</span>
                     <a
                         href={`https://www.google.com/maps?q=${currentLat},${currentLng}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ color: 'var(--primary-emerald)', textDecoration: 'none', fontWeight: '700' }}
+                        className="font-bold text-emerald-700 hover:text-emerald-800"
                     >
                         Google Maps ↗
                     </a>
@@ -77,23 +55,23 @@ const MapPicker = ({ lat = 12.9716, lng = 77.5946, isEditable = false, onChangeL
             </div>
 
             {isEditable && (
-                <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                        <label>Latitude</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 uppercase">Latitude</label>
                         <input
                             type="number"
                             step="0.0001"
-                            className="form-control"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                             value={currentLat}
                             onChange={(e) => handleCoordChange(parseFloat(e.target.value) || 0, currentLng)}
                         />
                     </div>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                        <label>Longitude</label>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 uppercase">Longitude</label>
                         <input
                             type="number"
                             step="0.0001"
-                            className="form-control"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                             value={currentLng}
                             onChange={(e) => handleCoordChange(currentLat, parseFloat(e.target.value) || 0)}
                         />

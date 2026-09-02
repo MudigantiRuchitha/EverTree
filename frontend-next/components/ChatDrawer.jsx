@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Paperclip, Mic, Check, CheckCheck } from 'lucide-react';
+import { X, Send, Paperclip, Mic, Check, CheckCheck, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { chatAPI } from '../services/api';
@@ -60,12 +60,12 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
 
         socket.on('receive_message', handleReceiveMessage);
         socket.on('message_sent', handleMessageSent);
-        socket.on('messages_read_receipt', handleReadReceipt);
+        socket.on('messages_read', handleReadReceipt);
 
         return () => {
             socket.off('receive_message', handleReceiveMessage);
             socket.off('message_sent', handleMessageSent);
-            socket.off('messages_read_receipt', handleReadReceipt);
+            socket.off('messages_read', handleReadReceipt);
         };
     }, [socket, activePartner, user]);
 
@@ -76,24 +76,24 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     const loadConversations = async () => {
         try {
             const res = await chatAPI.getConversations();
-            setConversations(res.data);
-            if (!activePartner && res.data.length > 0) {
-                setActivePartner(res.data[0]);
+            setConversations(res.data.conversations || []);
+            if (!activePartner && res.data.conversations?.length > 0) {
+                setActivePartner(res.data.conversations[0]);
             }
         } catch (err) {
-            console.error('Failed to load conversations:', err);
+            console.error('Error loading conversations:', err);
         }
     };
 
     const loadMessages = async (partnerId) => {
         try {
             const res = await chatAPI.getMessages(partnerId);
-            setMessages(res.data);
-            if (socket) {
+            setMessages(res.data.messages || []);
+            if (socket && user) {
                 socket.emit('mark_read', { sender_id: partnerId, receiver_id: user.id });
             }
         } catch (err) {
-            console.error('Failed to load message history:', err);
+            console.error('Error loading messages:', err);
         }
     };
 
@@ -101,33 +101,31 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
         e.preventDefault();
         if ((!inputMessage.trim() && !mediaFile) || !activePartner || !user) return;
 
-        const partnerId = activePartner.partner_id || activePartner.id;
         let mediaUrl = null;
         let mediaType = 'text';
 
         if (mediaFile) {
-            const formData = new FormData();
-            formData.append('file', mediaFile);
             try {
-                const uploadRes = await chatAPI.uploadChatFile(formData);
-                mediaUrl = uploadRes.data.file_url;
-                mediaType = uploadRes.data.media_type;
+                const formData = new FormData();
+                formData.append('file', mediaFile);
+                const uploadRes = await chatAPI.uploadMedia(formData);
+                mediaUrl = uploadRes.data.url;
+                mediaType = mediaFile.type.startsWith('image/') ? 'image' : 'voice';
             } catch (err) {
-                alert('Media upload failed');
-                return;
+                console.error('Media upload failed:', err);
             }
         }
 
-        const msgData = {
+        const payload = {
             sender_id: user.id,
-            receiver_id: partnerId,
-            message: inputMessage.trim(),
+            receiver_id: activePartner.partner_id || activePartner.id,
+            message: inputMessage,
             media_url: mediaUrl,
             media_type: mediaType
         };
 
         if (socket) {
-            socket.emit('send_message', msgData);
+            socket.emit('send_message', payload);
         }
 
         setInputMessage('');
@@ -156,84 +154,55 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     const isPartnerOnline = currentPartnerId && onlineUsers.has(Number(currentPartnerId));
 
     return (
-        <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            width: '400px',
-            height: '560px',
-            maxHeight: '85vh',
-            maxWidth: '92vw',
-            zIndex: 2000,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-        }} className="glass-card">
+        <div className="fixed bottom-0 right-0 sm:bottom-5 sm:right-5 w-full sm:w-96 md:w-[420px] h-[580px] max-h-[90vh] sm:max-h-[85vh] z-50 flex flex-col bg-white sm:rounded-2xl border border-slate-200 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200">
             
             {/* Header */}
-            <div style={{
-                padding: '12px 16px',
-                background: '#ffffff',
-                borderBottom: '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-            }}>
+            <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
                 {activePartner ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ position: 'relative' }}>
+                    <div className="flex items-center gap-2.5">
+                        <div className="relative">
                             <img
                                 src={activePartner.partner_avatar || activePartner.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'}
                                 alt={activePartner.partner_name || activePartner.name}
-                                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover' }}
+                                className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200"
                             />
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                right: 0,
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '50%',
-                                background: isPartnerOnline ? '#10b981' : '#94a3b8',
-                                border: '2px solid #ffffff'
-                            }} />
+                            <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white ${isPartnerOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
+                            <div className="text-sm font-bold text-slate-900 leading-tight">
                                 {activePartner.partner_name || activePartner.name}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: isPartnerOnline ? '#059669' : 'var(--text-muted)' }}>
+                            <div className="text-[11px] font-semibold text-emerald-600">
                                 {isPartnerOnline ? 'Online' : (activePartner.partner_role || activePartner.role || 'User')}
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div style={{ fontWeight: '700', color: '#0f172a' }}>Live Chat</div>
+                    <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                        <MessageSquare className="w-4 h-4 text-emerald-600" /> Live Chat
+                    </div>
                 )}
 
-                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                <button 
+                    onClick={onClose}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                >
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
-            {/* Conversation Bar */}
+            {/* Conversation Switcher Tabs */}
             {conversations.length > 1 && (
-                <div style={{ display: 'flex', gap: '6px', padding: '6px 10px', background: '#f8fafc', overflowX: 'auto', borderBottom: '1px solid #e2e8f0' }}>
+                <div className="flex gap-1.5 px-3 py-2 bg-slate-50 overflow-x-auto border-b border-slate-200 scrollbar-none shrink-0">
                     {conversations.map(conv => (
                         <button
                             key={conv.partner_id}
                             onClick={() => setActivePartner(conv)}
-                            style={{
-                                padding: '4px 10px',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                border: 'none',
-                                cursor: 'pointer',
-                                background: (activePartner && (activePartner.partner_id || activePartner.id) === conv.partner_id) ? 'var(--primary-emerald)' : '#e2e8f0',
-                                color: (activePartner && (activePartner.partner_id || activePartner.id) === conv.partner_id) ? '#ffffff' : '#0f172a',
-                                whiteSpace: 'nowrap'
-                            }}
+                            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                                (activePartner && (activePartner.partner_id || activePartner.id) === conv.partner_id)
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                            }`}
                         >
                             {conv.partner_name}
                         </button>
@@ -242,9 +211,9 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
             )}
 
             {/* Messages Thread */}
-            <div style={{ flex: 1, padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc' }}>
+            <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-2.5 bg-slate-50/80">
                 {messages.length === 0 ? (
-                    <div style={{ textAlign: 'center', margin: 'auto', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    <div className="text-center my-auto text-slate-400 text-xs sm:text-sm">
                         💬 Send a message to start conversation!
                     </div>
                 ) : (
@@ -253,32 +222,26 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
                         return (
                             <div
                                 key={idx}
-                                style={{
-                                    alignSelf: isMe ? 'flex-end' : 'flex-start',
-                                    maxWidth: '80%',
-                                    background: isMe ? '#059669' : '#ffffff',
-                                    color: isMe ? '#ffffff' : '#0f172a',
-                                    border: isMe ? 'none' : '1px solid #e2e8f0',
-                                    padding: '8px 12px',
-                                    borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                                    fontSize: '0.88rem',
-                                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
-                                }}
+                                className={`max-w-[82%] px-3.5 py-2 rounded-2xl text-xs sm:text-sm shadow-xs ${
+                                    isMe
+                                        ? 'self-end bg-emerald-600 text-white rounded-br-xs'
+                                        : 'self-start bg-white text-slate-900 border border-slate-200/80 rounded-bl-xs'
+                                }`}
                             >
                                 {msg.media_type === 'image' && msg.media_url && (
-                                    <img src={msg.media_url} alt="Chat media" style={{ width: '100%', borderRadius: '6px', marginBottom: '4px' }} />
+                                    <img src={msg.media_url} alt="Chat media" className="w-full rounded-lg mb-1.5" />
                                 )}
                                 {msg.media_type === 'voice' && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isMe ? 'rgba(0,0,0,0.15)' : '#f1f5f9', padding: '4px 8px', borderRadius: '12px', marginBottom: '4px' }}>
-                                        <Mic size={14} color={isMe ? '#ffffff' : 'var(--accent-gold)'} />
+                                    <div className={`flex items-center gap-1.5 p-1.5 rounded-lg mb-1 text-xs ${isMe ? 'bg-black/15' : 'bg-slate-100 text-slate-800'}`}>
+                                        <Mic className="w-3.5 h-3.5 text-amber-500" />
                                         <span>{msg.message || 'Voice Message'}</span>
                                     </div>
                                 )}
-                                <div>{msg.message}</div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', fontSize: '0.65rem', color: isMe ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)', marginTop: '2px' }}>
-                                    {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <div className="leading-relaxed break-words">{msg.message}</div>
+                                <div className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${isMe ? 'text-white/80' : 'text-slate-400'}`}>
+                                    <span>{new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     {isMe && (
-                                        msg.is_read ? <CheckCheck size={12} color="#93c5fd" /> : <Check size={12} />
+                                        msg.is_read ? <CheckCheck className="w-3 h-3 text-blue-200" /> : <Check className="w-3 h-3" />
                                     )}
                                 </div>
                             </div>
@@ -290,49 +253,53 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
 
             {/* Media Upload Preview */}
             {mediaFile && (
-                <div style={{ padding: '6px 10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#15803d' }}>
-                    <span>📎 Attachment: {mediaFile.name}</span>
-                    <button onClick={() => setMediaFile(null)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                        <X size={12} />
+                <div className="px-3 py-1.5 bg-emerald-100/80 border-t border-emerald-200 flex items-center justify-between text-xs text-emerald-900 shrink-0">
+                    <span className="truncate">📎 Attachment: {mediaFile.name}</span>
+                    <button onClick={() => setMediaFile(null)} className="p-1 text-rose-600 hover:bg-emerald-200 rounded-full cursor-pointer">
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
             )}
 
             {/* Input Form */}
-            <form onSubmit={handleSendMessage} style={{ padding: '10px', background: '#ffffff', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <form onSubmit={handleSendMessage} className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-1.5 shrink-0">
                 <input
                     type="file"
                     ref={fileInputRef}
-                    style={{ display: 'none' }}
+                    className="hidden"
                     onChange={(e) => setMediaFile(e.target.files[0])}
                 />
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                    title="Attach File"
                 >
-                    <Paperclip size={16} />
+                    <Paperclip className="w-4 h-4" />
                 </button>
 
                 <button
                     type="button"
                     onClick={handleSendVoiceNote}
-                    style={{ background: 'transparent', border: 'none', color: isRecordingVoice ? '#ef4444' : 'var(--text-muted)', cursor: 'pointer' }}
+                    className={`p-2 rounded-xl transition-colors cursor-pointer ${isRecordingVoice ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+                    title="Voice Note"
                 >
-                    <Mic size={16} />
+                    <Mic className="w-4 h-4" />
                 </button>
 
                 <input
                     type="text"
-                    className="form-control"
                     placeholder="Type message..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
-                    style={{ flex: 1, padding: '6px 10px', fontSize: '0.85rem' }}
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all"
                 />
 
-                <button type="submit" className="btn btn-primary" style={{ padding: '6px 10px' }}>
-                    <Send size={14} />
+                <button 
+                    type="submit" 
+                    className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition-all hover:scale-105 cursor-pointer"
+                >
+                    <Send className="w-4 h-4" />
                 </button>
             </form>
         </div>
