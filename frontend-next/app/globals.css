@@ -1,18 +1,33 @@
 @import "tailwindcss";
 
+@theme {
+  --color-emerald-50: #fff1f2;
+  --color-emerald-100: #ffe4e6;
+  --color-emerald-200: #fecdd3;
+  --color-emerald-300: #fda4af;
+  --color-emerald-400: #fb7185;
+  --color-emerald-500: #f43f5e;
+  --color-emerald-600: #e11d48;
+  --color-emerald-700: #be123c;
+  --color-emerald-800: #9f1239;
+  --color-emerald-900: #881337;
+  --color-emerald-950: #4c0519;
+  --color-teal-50: #fff7f7;
+}
+
 @layer base {
   :root {
     --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    --primary-emerald: #059669;
-    --primary-emerald-hover: #047857;
-    --primary-emerald-glow: rgba(5, 150, 105, 0.15);
+    --primary-rose: #e11d48;
+    --primary-rose-hover: #be123c;
+    --primary-rose-glow: rgba(225, 29, 72, 0.15);
     --accent-gold: #d97706;
     --accent-blue: #2563eb;
 
     --bg-light: #f8fafc;
-    --bg-card: #ffffff;
+    --bg-card: rgba(255, 241, 242, 0.72);
     --border-glass: rgba(226, 232, 240, 0.9);
 
     --text-main: #0f172a;
@@ -31,7 +46,7 @@
     color: #0f172a;
     font-family: var(--font-body);
     background-image: 
-      radial-gradient(circle at 10% 10%, rgba(5, 150, 105, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 10% 10%, rgba(225, 29, 72, 0.04) 0%, transparent 40%),
       radial-gradient(circle at 90% 80%, rgba(37, 99, 235, 0.04) 0%, transparent 45%);
     background-attachment: fixed;
     min-height: 100vh;
@@ -43,6 +58,16 @@
     font-family: var(--font-primary);
     letter-spacing: -0.02em;
   }
+}
+
+/* Give exact white UI surfaces a translucent rose tint. */
+[class~="bg-white"] {
+  background-color: rgb(255 241 242 / 0.72) !important;
+}
+
+[class~="bg-white/95"],
+[class~="bg-white/90"] {
+  background-color: rgb(255 241 242 / 0.82) !important;
 }
 
 /* Custom Scrollbar */
@@ -58,5 +83,5 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #059669;
+  background: #e11d48;
 }

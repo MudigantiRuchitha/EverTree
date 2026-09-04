@@ -5,6 +5,39 @@ import PropertyCard from '../components/PropertyCard';
 import { propertyAPI } from '../services/api';
 import { ShieldCheck, Sparkles, Home, Building } from 'lucide-react';
 
+const processSteps = [
+    {
+        number: '01',
+        title: 'Create your account',
+        description: 'Choose whether you are a buyer, seller or broker and create your Evertree account.'
+    },
+    {
+        number: '02',
+        title: 'Explore properties',
+        description: 'Search and discover properties based on location, property type and your requirements.'
+    },
+    {
+        number: '03',
+        title: 'Connect',
+        description: 'Connect with sellers and brokers to learn more about the property you are interested in.'
+    }
+];
+
+const platformAudiences = [
+    {
+        title: 'For Buyers',
+        description: 'Discover properties that match your requirements and connect with the right people.'
+    },
+    {
+        title: 'For Sellers',
+        description: 'Showcase your properties and reach people who are actively looking.'
+    },
+    {
+        title: 'For Brokers',
+        description: 'Build your property network and manage your real estate activity.'
+    }
+];
+
 export default function HomePage({ onOpenChat }) {
     const [properties, setProperties] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,11 +64,11 @@ export default function HomePage({ onOpenChat }) {
     };
 
     return (
-        <div className="space-y-10 sm:space-y-14 pb-16">
+        <div className="space-y-12 sm:space-y-16">
             {/* Hero & Search Banner */}
             <HeroSearch onSearch={handleSearch} />
 
-            {/* Main Content Area */}
+            {/* Main Content Area - Explore Verified Properties */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 {/* Section Header */}
@@ -84,7 +117,7 @@ export default function HomePage({ onOpenChat }) {
                         </p>
                         <button
                             onClick={() => setFilters({})}
-                            className="px-6 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all"
+                            className="px-6 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all cursor-pointer"
                         >
                             Reset Search Filters
                         </button>
@@ -102,6 +135,73 @@ export default function HomePage({ onOpenChat }) {
                 )}
 
             </div>
+
+            {/* Section 1: Finding your property made simple (SIMPLE PROCESS) */}
+            <section className="py-8 sm:py-12 lg:py-16">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8 sm:mb-12">
+                        <span className="text-xs sm:text-sm font-extrabold text-emerald-600 uppercase tracking-widest block">
+                            SIMPLE PROCESS
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight mt-1.5">
+                            Finding your property made simple
+                        </h2>
+                        <p className="text-xs sm:text-base text-slate-500 mt-2 max-w-2xl">
+                            Evertree makes it easier to discover properties and connect with the right people.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+                        {processSteps.map((step) => (
+                            <div
+                                key={step.number}
+                                className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-9 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-start group"
+                            >
+                                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mb-4 sm:mb-6 group-hover:scale-105 transition-transform duration-300 w-fit">
+                                    {step.number}
+                                </div>
+                                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2">
+                                    {step.title}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                                    {step.description}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 2: Built for everyone in real estate (ONE PLATFORM) */}
+            <section className="bg-emerald-50/60 border-y border-emerald-100/70 py-6 sm:py-10 lg:py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center max-w-3xl mx-auto mb-4 sm:mb-6">
+                        <span className="text-xs sm:text-sm font-extrabold text-emerald-700 uppercase tracking-widest block mb-1.5">
+                            ONE PLATFORM
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">
+                            Built for everyone in real estate
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
+                        {platformAudiences.map((item) => (
+                            <div
+                                key={item.title}
+                                className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-9 border border-emerald-100/70 shadow-xs hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-start group"
+                            >
+                                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2.5">
+                                    {item.title}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                                    {item.description}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
         </div>
     );
 }

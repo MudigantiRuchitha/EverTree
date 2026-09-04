@@ -1,3 +1,4 @@
+
 -- Evertree PostgreSQL Database Schema with Legal Verification & Verification ID
 
 CREATE TABLE IF NOT EXISTS users (

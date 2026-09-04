@@ -1,19 +1,21 @@
 'use client';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, MapPin, Building, DollarSign, Home, SlidersHorizontal } from 'lucide-react';
 
-const HeroSearch = ({ onSearch }) => {
-    const [category, setCategory] = useState('all');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [city, setCity] = useState('');
-    const [district, setDistrict] = useState('');
-    const [propertyType, setPropertyType] = useState('');
-    const [bhk, setBhk] = useState('');
-    const [maxPrice, setMaxPrice] = useState('');
+const HeroSearch = ({ onSearch, initialValues = {} }) => {
+    const router = useRouter();
+    const [category, setCategory] = useState(initialValues.category || 'all');
+    const [searchQuery, setSearchQuery] = useState(initialValues.search || '');
+    const [city, setCity] = useState(initialValues.city || '');
+    const [district, setDistrict] = useState(initialValues.district || '');
+    const [propertyType, setPropertyType] = useState(initialValues.property_type || '');
+    const [bhk, setBhk] = useState(initialValues.bhk || '');
+    const [maxPrice, setMaxPrice] = useState(initialValues.max_price || '');
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        onSearch({
+        const searchData = {
             category,
             search: searchQuery,
             city,
@@ -21,7 +23,23 @@ const HeroSearch = ({ onSearch }) => {
             property_type: propertyType,
             bhk,
             max_price: maxPrice
-        });
+        };
+
+        if (onSearch) {
+            onSearch(searchData);
+        }
+
+        const params = new URLSearchParams();
+        if (category && category !== 'all') params.set('category', category);
+        if (searchQuery.trim()) params.set('search', searchQuery.trim());
+        if (city.trim()) params.set('city', city.trim());
+        if (district.trim()) params.set('district', district.trim());
+        if (propertyType) params.set('property_type', propertyType);
+        if (bhk) params.set('bhk', bhk);
+        if (maxPrice) params.set('max_price', maxPrice);
+
+        const queryString = params.toString();
+        router.push(queryString ? `/search?${queryString}` : '/search');
     };
 
     return (

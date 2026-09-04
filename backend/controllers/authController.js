@@ -16,30 +16,24 @@ const generateVerificationId = (role) => {
     return `${prefix}${randomDigits}`;
 };
 
-// Send OTP to Email (via SMTP) and Phone (SMS dispatch)
+// Send OTP to Phone (SMS dispatch)
 exports.sendOtp = async (req, res) => {
     try {
-        const { email, phone, name } = req.body;
-        if (!email && !phone) {
-            return res.status(400).json({ error: 'Both Contact Phone Number and Email address are required.' });
+        const {phone, name } = req.body;
+        if (!phone) {
+            return res.status(400).json({ error: 'Contact number is required to send OTP.' });
         }
-
-        const emailOtp = Math.floor(1000 + Math.random() * 9000).toString();
+       
         const phoneOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
         // Store OTP with 10-minute validity
         const key = `${email.toLowerCase()}_${phone}`;
         otpStore.set(key, {
-            emailOtp,
             phoneOtp,
             expiresAt: Date.now() + 10 * 60 * 1000
         });
 
-        let mailResult = null;
-        if (email) {
-            mailResult = await sendOtpEmail(email, emailOtp, name || 'Valued Member');
-        }
-
+        
         if (phone) {
             await sendSmsOtp(phone, phoneOtp);
         }
@@ -60,24 +54,11 @@ exports.sendOtp = async (req, res) => {
 
 // Verify both Email & Phone OTPs on the server
 exports.verifyOtp = async (req, res) => {
-    try {
-        const { email, phone, emailOtp, phoneOtp } = req.body;
-        if (!email || !phone || !emailOtp || !phoneOtp) {
-            return res.status(400).json({ error: 'Email, contact number, and both OTP codes are required.' });
-        }
+    
 
         const key = `${email.toLowerCase()}_${phone}`;
         const record = otpStore.get(key);
-
-        const isEmailMatch = (record && record.emailOtp === emailOtp) || emailOtp === '1234';
         const isPhoneMatch = (record && record.phoneOtp === phoneOtp) || phoneOtp === '1234';
-
-        if (!isEmailMatch && !isPhoneMatch) {
-            return res.status(400).json({ error: 'Invalid Email OTP and Mobile SMS OTP.' });
-        }
-        if (!isEmailMatch) {
-            return res.status(400).json({ error: 'Invalid Email OTP. Please check your inbox or spam folder.' });
-        }
         if (!isPhoneMatch) {
             return res.status(400).json({ error: 'Invalid Contact Number SMS OTP. Please check your SMS.' });
         }
@@ -98,10 +79,10 @@ exports.verifyOtp = async (req, res) => {
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, role, phone, govt_id_type, govt_id_number, rera_number, agency_license, ownership_proof_ref } = req.body;
+        const { name, password, role, phone, govt_id_type, govt_id_number, rera_number, agency_license, ownership_proof_ref } = req.body;
         
-        if (!name || !email || !password || !role || !phone) {
-            return res.status(400).json({ error: 'Name, email, password, contact number, and account role are required.' });
+        if (!name || !password || !role || !phone) {
+            return res.status(400).json({ error: 'Name, password, contact number, and account role are required.' });
         }
 
         if (!['buyer', 'seller', 'broker'].includes(role)) {

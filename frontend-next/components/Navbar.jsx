@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { 
     Building2, Heart, MessageSquare, PlusCircle, User, LogOut, 
     ShieldCheck, Home, Calculator, Briefcase, FileCheck, ShieldAlert, 
-    Menu, X 
+    Menu, X, Search 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from './AuthModal';
@@ -20,13 +20,17 @@ const Navbar = ({ onOpenChat }) => {
     const [authMode, setAuthMode] = useState('login');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const isActive = (path) => pathname === path;
+    const isActive = (path) => {
+        if (path === '/') return pathname === '/';
+        return pathname ? pathname.startsWith(path) : false;
+    };
 
     const navLinks = [
         { href: '/', label: 'Home', icon: Home },
         { href: '/loan', label: 'Home Loans', icon: Calculator },
         { href: '/legal', label: 'Legal Services', icon: FileCheck },
         { href: '/interior', label: 'Interior Design', icon: Briefcase },
+        { href: '/search', label: 'Search', icon: Search },
     ];
 
     const closeMobileMenu = () => setMobileMenuOpen(false);
