@@ -24,7 +24,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
     // Dual OTP inputs
     const [inputEmailOtp, setInputEmailOtp] = useState('');
-    const [inputPhoneOtp, setInputPhoneOtp] = useState('');
+    
 
     // Legal credentials for Seller / Broker
     const [govtIdType, setGovtIdType] = useState('Aadhaar Card');
@@ -41,73 +41,86 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     const [otpSentMsg, setOtpSentMsg] = useState('');
 
     // Step 1 -> Step 2: Send Dual OTP to Email and Phone
-    const handleSendDualOtp = async () => {
-        if (!name.trim()) {
-            setError('Please enter your full name.');
-            return;
-        }
-        if (!email.trim() || !email.includes('@')) {
-            setError('Please enter a valid email address.');
-            return;
-        }
-        if (!phone.trim() || phone.length < 8) {
-            setError('Please enter a valid mobile contact number.');
-            return;
-        }
-        if (!password || password.length < 4) {
-            setError('Password must be at least 4 characters.');
-            return;
-        }
+    const handleSendOtp = async () => {
+    if (!name.trim()) {
+        setError('Please enter your full name.');
+        return;
+    }
 
-        setError('');
-        setLoading(true);
+    if (!email.trim() || !email.includes('@')) {
+        setError('Please enter a valid email address.');
+        return;
+    }
 
-        try {
-            const res = await authAPI.sendOtp({ email, phone, name });
-            setOtpSentMsg(res.data.message || `OTP verification codes have been sent to your email (${email}) and contact number (${phone}).`);
-            setInputEmailOtp('');
-            setInputPhoneOtp('');
-            setRegStep(2);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Failed to dispatch verification OTPs. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (!phone.trim() || phone.length < 8) {
+        setError('Please enter a valid mobile contact number.');
+        return;
+    }
+
+    if (!password || password.length < 4) {
+        setError('Password must be at least 4 characters.');
+        return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+        // Email OTP only
+        const res = await authAPI.sendOtp({
+            email,
+            name
+        });
+
+        setOtpSentMsg(
+            res.data.message ||
+            `OTP has been sent to your email (${email}).`
+        );
+
+        setInputEmailOtp('');
+        setRegStep(2);
+
+    } catch (err) {
+        setError(
+            err.response?.data?.error ||
+            'Failed to send email OTP. Please try again.'
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     // Step 2 -> Step 3: Verify Both Contact & Email OTPs with backend
-    const handleVerifyDualOtp = async () => {
-        if (!inputEmailOtp.trim() || inputEmailOtp.length < 4) {
-            setError('Please enter the 4-digit OTP code sent to your email.');
-            return;
-        }
-        if (!inputPhoneOtp.trim() || inputPhoneOtp.length < 4) {
-            setError('Please enter the 4-digit SMS OTP code sent to your contact number.');
-            return;
+    const handleVerifyOtp = async () => {
+    if (!inputEmailOtp.trim() || inputEmailOtp.length < 4) {
+        setError('Please enter the 4-digit OTP code sent to your email.');
+        return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+        await authAPI.verifyOtp({
+            email,
+            emailOtp: inputEmailOtp.trim()
+        });
+
+        if (role === 'buyer') {
+            await completeFinalRegistration();
+        } else {
+            setRegStep(3);
         }
 
-        setError('');
-        setLoading(true);
-
-        try {
-            await authAPI.verifyOtp({
-                email,
-                phone,
-                emailOtp: inputEmailOtp.trim(),
-                phoneOtp: inputPhoneOtp.trim()
-            });
-
-            if (role === 'buyer') {
-                await completeFinalRegistration();
-            } else {
-                setRegStep(3);
-            }
-        } catch (err) {
-            setError(err.response?.data?.error || 'Invalid OTP code. Please check your SMS and Email inbox.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (err) {
+        setError(
+            err.response?.data?.error ||
+            'Invalid email OTP. Please check your email.'
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     const completeFinalRegistration = async () => {
         setError('');
@@ -147,19 +160,39 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     };
 
     const handleLoginSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-        try {
-            await login({ identifier: loginIdentifier, password });
-            onClose();
-        } catch (err) {
-            setError(err.response?.data?.error || 'Login failed. Check your Contact Number, Email, or Verification ID.');
-        } finally {
-            setLoading(false);
+    try {
+        const loggedInUser = await login({
+            identifier: loginIdentifier,
+            password
+        });
+
+        onClose();
+
+        // Redirect based on user role
+        if (loggedInUser.role === 'seller') {
+            window.location.href = '/seller-dashboard';
+        } else if (loggedInUser.role === 'broker') {
+            window.location.href = '/broker-dashboard';
+        } else if (loggedInUser.role === 'admin') {
+            window.location.href = '/admin';
+        } else {
+            // Buyer
+            window.location.href = '/buyer-dashboard';
         }
-    };
+
+    } catch (err) {
+        setError(
+            err.response?.data?.error ||
+            'Login failed. Check your Contact Number, Email, or Verification ID.'
+        );
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleCopyVerificationId = () => {
         if (issuedUser?.verification_id) {
@@ -190,7 +223,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                         {isLogin ? 'Member Login' : 'Evertree Verified Registration'}
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                        {isLogin ? 'Log in with Email, Mobile Number, or Verification ID' : 'Dual OTP Verification for Mobile & Email'}
+                        {isLogin ? 'Log in with Email, Mobile Number, or Verification ID' : 'Email OTP Verification'}
                     </p>
                 </div>
 
@@ -387,7 +420,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
                                 <div className="space-y-1">
                                     <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                        <Phone className="w-3.5 h-3.5 text-emerald-600" /> Mobile Number (For SMS OTP) *
+                                        <Phone className="w-3.5 h-3.5 text-emerald-600" /> Mobile Number+ *
                                     </label>
                                     <input type="tel" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} required />
                                 </div>
@@ -403,9 +436,9 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                     type="button" 
                                     disabled={loading}
                                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60"
-                                    onClick={handleSendDualOtp}
+                                    onClick={handleSendOtp}
                                 >
-                                    <Send className="w-4 h-4" /> {loading ? 'Sending OTP Codes...' : 'Send OTP to Email & Phone →'}
+                                    <Send className="w-4 h-4" /> {loading ? 'Sending OTP Codes...' : 'Send OTP to Email →'}
                                 </button>
                             </div>
                         )}
@@ -415,15 +448,15 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                             <div className="space-y-4">
                                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 space-y-1.5">
                                     <div className="font-bold flex items-center gap-1.5">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verification Codes Dispatched:
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verification Code sent:
                                     </div>
                                     <div className="text-emerald-800 space-y-0.5">
                                         <div>✉️ Email OTP sent to: <strong>{email}</strong></div>
-                                        <div>📱 SMS OTP sent to: <strong>{phone}</strong></div>
+                                        
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 gap-3">
                                     <div className="space-y-1">
                                         <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 uppercase">
                                             <Mail className="w-3 h-3 text-emerald-600" /> Email OTP
@@ -438,19 +471,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                         />
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="flex items-center gap-1 text-[11px] font-bold text-slate-700 uppercase">
-                                            <Smartphone className="w-3 h-3 text-emerald-600" /> Mobile OTP
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            maxLength="6" 
-                                            className="w-full py-2.5 text-center text-lg font-black tracking-widest bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500" 
-                                            placeholder="••••" 
-                                            value={inputPhoneOtp} 
-                                            onChange={(e) => setInputPhoneOtp(e.target.value)} 
-                                        />
-                                    </div>
+                                    
                                 </div>
 
                                 <div className="flex gap-2">
@@ -459,14 +480,14 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                         className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200"
                                         onClick={() => setRegStep(1)}
                                     >
-                                        Change Phone / Email
+                                        Change Email
                                     </button>
                                     <button
                                         type="button"
                                         className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-1"
-                                        onClick={handleSendDualOtp}
+                                        onClick={handleSendOtp}
                                     >
-                                        <RefreshCw className="w-3 h-3" /> Resend OTPs
+                                        <RefreshCw className="w-3 h-3" /> Resend OTP
                                     </button>
                                 </div>
 
@@ -474,9 +495,9 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                     type="button" 
                                     disabled={loading}
                                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60" 
-                                    onClick={handleVerifyDualOtp}
+                                    onClick={handleVerifyOtp}
                                 >
-                                    <CheckCircle2 className="w-4 h-4" /> {loading ? 'Verifying OTPs...' : (role === 'buyer' ? 'Verify & Issue Verification ID' : 'Verify OTPs & Continue to Legal Info →')}
+                                    <CheckCircle2 className="w-4 h-4" /> {loading ? 'Verifying Email....' : (role === 'buyer' ? 'Verify Email & Issue Verification ID' : 'Verify Email & Continue to Legal Info →')}
                                 </button>
                             </div>
                         )}
