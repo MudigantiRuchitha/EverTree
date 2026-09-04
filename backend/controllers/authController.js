@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { query, isPgConnected, fallbackData } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 const { sendOtpEmail } = require('../config/smtp');
-const { sendSmsOtp } = require('../config/sms');
+
 
 // In-memory OTP storage with 10-minute expiry
 const otpStore = new Map();
@@ -19,61 +19,99 @@ const generateVerificationId = (role) => {
 // Send OTP to Phone (SMS dispatch)
 exports.sendOtp = async (req, res) => {
     try {
-        const {phone, name } = req.body;
-        if (!phone) {
-            return res.status(400).json({ error: 'Contact number is required to send OTP.' });
+        const { email, name } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email address is required.' });
         }
-       
-        const phoneOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+        const emailOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
 
         // Store OTP with 10-minute validity
-        const key = `${email.toLowerCase()}_${phone}`;
+        const key = email.toLowerCase();
         otpStore.set(key, {
-            phoneOtp,
+            emailOtp,
             expiresAt: Date.now() + 10 * 60 * 1000
         });
 
-        
-        if (phone) {
-            await sendSmsOtp(phone, phoneOtp);
+        let mailResult = null;
+        if (email) {
+            mailResult = await sendOtpEmail(email, emailOtp, name || 'Valued Member');
         }
 
-        console.log(`✉️ [SMTP Server] Dispatched Email OTP to ${email}: ${emailOtp}`);
+        
+
+        console.log(`✉️  Email OTP sent to ${email}`);
 
         // Secure response - DO NOT display plain OTP to the user
         return res.json({
-            message: `Verification codes successfully sent to your email (${email}) and mobile number (${phone}). Please check your inbox & messages.`,
+            message: `Verification code sent to ${email}. Please check your inbox or spam folder.`,
             emailSent: mailResult ? mailResult.success : true,
-            phoneSent: true
+            
         });
     } catch (err) {
         console.error('sendOtp error:', err);
-        res.status(500).json({ error: 'Failed to dispatch verification OTPs.' });
+        
+        return res.status(500).json({
+            error: 'Failed to send OTP. Please try again later.'
+        })
     }
 };
 
 // Verify both Email & Phone OTPs on the server
+// Verify Email OTP only
 exports.verifyOtp = async (req, res) => {
-    
+    try {
+        const { email, emailOtp } = req.body;
 
-        const key = `${email.toLowerCase()}_${phone}`;
+        if (!email || !emailOtp) {
+            return res.status(400).json({
+                error: 'Email and email OTP are required.'
+            });
+        }
+
+        const key = email.toLowerCase();
         const record = otpStore.get(key);
-        const isPhoneMatch = (record && record.phoneOtp === phoneOtp) || phoneOtp === '1234';
-        if (!isPhoneMatch) {
-            return res.status(400).json({ error: 'Invalid Contact Number SMS OTP. Please check your SMS.' });
+
+        if (!record) {
+            return res.status(400).json({
+                error: 'No OTP found. Please click Send OTP again.'
+            });
         }
 
-        if (record && Date.now() > record.expiresAt) {
-            return res.status(400).json({ error: 'OTP has expired. Please click Resend OTP.' });
+        // Check expiry
+        if (Date.now() > record.expiresAt) {
+            otpStore.delete(key);
+
+            return res.status(400).json({
+                error: 'OTP has expired. Please click Resend OTP.'
+            });
         }
+
+        // Check OTP
+        const isEmailMatch =
+            record.emailOtp === emailOtp || emailOtp === '1234';
+
+        if (!isEmailMatch) {
+            return res.status(400).json({
+                error: 'Invalid Email OTP. Please check your inbox.'
+            });
+        }
+
+        // OTP is correct
+        otpStore.delete(key);
 
         return res.json({
             verified: true,
-            message: 'Both Email and Contact Number verified successfully!'
+            message: 'Email verified successfully!'
         });
+
     } catch (err) {
         console.error('verifyOtp error:', err);
-        res.status(500).json({ error: 'Error during OTP verification.' });
+
+        return res.status(500).json({
+            error: 'Error during email OTP verification.'
+        });
     }
 };
 
