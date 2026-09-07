@@ -57,7 +57,7 @@ const HeroSearch = ({ onSearch, initialValues = {} }) => {
                         Find Your Dream Home With 100% Clear Title
                     </h1>
                     <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-100 font-medium drop-shadow">
-                        Verified sellers, certified RERA brokers, and direct escrow assistance.
+                        Verified sellers, brokers, and direct escrow assistance.
                     </p>
                 </div>
 

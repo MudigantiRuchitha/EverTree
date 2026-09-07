@@ -7,7 +7,9 @@ const { sendOtpEmail } = require('../config/smtp');
 
 // In-memory OTP storage with 10-minute expiry
 const otpStore = new Map();
-
+console.log("AUTH CONTROLLER LOADED");
+console.log("OTP STORE CREATED");
+console.log("Process ID:", process.pid);
 // Helper to generate Unique Verification ID
 const generateVerificationId = (role) => {
     const prefixMap = { buyer: 'EVT-BUY-', seller: 'EVT-SEL-', broker: 'EVT-BRK-', admin: 'EVT-ADM-' };
@@ -28,11 +30,17 @@ exports.sendOtp = async (req, res) => {
 
 
         // Store OTP with 10-minute validity
-        const key = email.toLowerCase();
+        const key = email.trim().toLowerCase();
         otpStore.set(key, {
             emailOtp,
             expiresAt: Date.now() + 10 * 60 * 1000
         });
+
+        console.log("========== OTP STORED ==========");
+        console.log("Email:", key);
+        console.log("OTP:", emailOtp);
+        console.log("Store size:", otpStore.size);
+        console.log("================================");
 
         let mailResult = null;
         if (email) {
@@ -63,15 +71,21 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
     try {
         const { email, emailOtp } = req.body;
-
         if (!email || !emailOtp) {
             return res.status(400).json({
                 error: 'Email and email OTP are required.'
             });
         }
 
-        const key = email.toLowerCase();
+        const key = email.trim().toLowerCase();
         const record = otpStore.get(key);
+
+        console.log("========== OTP VERIFY ==========");
+        console.log("Email:", key);
+        console.log("Entered OTP:", emailOtp);
+        console.log("Record:", record);
+        console.log("Store size:", otpStore.size);
+        console.log("================================");
 
         if (!record) {
             return res.status(400).json({
@@ -117,7 +131,18 @@ exports.verifyOtp = async (req, res) => {
 
 exports.register = async (req, res) => {
     try {
-        const { name, password, role, phone, govt_id_type, govt_id_number, rera_number, agency_license, ownership_proof_ref } = req.body;
+        const {
+            name,
+            email,
+            password,
+            role,
+            phone,
+            govt_id_type,
+            govt_id_number,
+            rera_number,
+            agency_license,
+            ownership_proof_ref
+        } = req.body;
         
         if (!name || !password || !role || !phone) {
             return res.status(400).json({ error: 'Name, password, contact number, and account role are required.' });

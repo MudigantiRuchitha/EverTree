@@ -97,11 +97,6 @@ const Navbar = ({ onOpenChat }) => {
             icon: Home
         },
         {
-            href: '/properties',
-            label: 'Find Properties',
-            icon: Search
-        },
-        {
             href: '/buyer-dashboard',
             label: 'Wishlist',
             icon: Heart
@@ -130,7 +125,7 @@ const Navbar = ({ onOpenChat }) => {
             icon: Home
         },
         {
-            href: '/my-listings',
+            href: '/my-listing',
             label: 'My Listings',
             icon: Building2
         },
@@ -139,11 +134,11 @@ const Navbar = ({ onOpenChat }) => {
             label: 'Buyer Requests',
             icon: UserCheck
         },
-        {
-            href: '/messages',
-            label: 'Messages',
-            icon: MessageSquare
-        },
+        // {
+        //     href: '/messages',
+        //     label: 'Messages',
+        //     icon: MessageSquare
+        // },
         {
             href: '/notifications',
             label: 'Notifications',
@@ -169,7 +164,7 @@ const Navbar = ({ onOpenChat }) => {
             icon: Search
         },
         {
-            href: '/my-listings',
+            href: '/my-listing',
             label: 'My Listings',
             icon: Building2
         },
@@ -425,21 +420,6 @@ const Navbar = ({ onOpenChat }) => {
                                         </Link>
 
                                     )}
-
-
-                                    {/* =====================================
-                                        MESSAGE BUTTON
-                                    ===================================== */}
-
-                                    <Link
-                                        href="/messages"
-                                        className="p-2.5 rounded-lg border border-slate-200 text-emerald-600 bg-slate-50 hover:bg-emerald-50 transition-colors"
-                                        title="Messages"
-                                    >
-
-                                        <MessageSquare className="w-5 h-5" />
-
-                                    </Link>
 
 
                                     {/* =====================================

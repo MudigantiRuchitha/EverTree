@@ -22,7 +22,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
     const [loginIdentifier, setLoginIdentifier] = useState('');
 
-    // Dual OTP inputs
+    //  OTP inputs
     const [inputEmailOtp, setInputEmailOtp] = useState('');
     
 
@@ -40,7 +40,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     const [loading, setLoading] = useState(false);
     const [otpSentMsg, setOtpSentMsg] = useState('');
 
-    // Step 1 -> Step 2: Send Dual OTP to Email and Phone
+    // Step 1 -> Step 2: Send OTP to Email and Phone
     const handleSendOtp = async () => {
     if (!name.trim()) {
         setError('Please enter your full name.');
@@ -360,7 +360,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                 1. Details
                             </span>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${regStep === 2 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                                2. Dual OTP
+                                2. OTP
                             </span>
                             {role !== 'buyer' && (
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${regStep === 3 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
@@ -443,7 +443,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                             </div>
                         )}
 
-                        {/* STEP 2: DUAL OTP VERIFICATION */}
+                        {/* STEP 2: OTP VERIFICATION */}
                         {regStep === 2 && (
                             <div className="space-y-4">
                                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 space-y-1.5">

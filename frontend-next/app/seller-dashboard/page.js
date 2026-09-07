@@ -119,7 +119,7 @@ export default function SellerDashboard() {
                             </Link>
 
                             <Link
-                                href="/my-listings"
+                                href="/my-listing"
                                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200"
                             >
                                 My Listings
