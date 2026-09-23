@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS property_media (
     id SERIAL PRIMARY KEY,
     property_id INT REFERENCES properties(id) ON DELETE CASCADE,
     file_url VARCHAR(255) NOT NULL,
+    media_url VARCHAR(255),
     media_type VARCHAR(20) CHECK (media_type IN ('image', 'video'))
 );
 
@@ -95,7 +96,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE TABLE IF NOT EXISTS service_leads (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    service_type VARCHAR(50) NOT NULL CHECK (service_type IN ('loan', 'legal', 'interior')),
+    service_type VARCHAR(50) NOT NULL CHECK (service_type IN ('loan', 'legal', 'interior', 'broker')),
     details JSONB,
     status VARCHAR(20) DEFAULT 'new',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

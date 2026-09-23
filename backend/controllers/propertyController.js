@@ -3,18 +3,23 @@ const { query, isPgConnected, fallbackData } = require('../config/db');
 exports.getProperties = async (req, res) => {
     try {
         const { category, search, city, district, min_price, max_price, property_type, bhk, is_featured } = req.query;
+        const userId = req.user ? req.user.id : null;
 
         if (isPgConnected()) {
             let sql = `
                 SELECT p.*, 
-                       u.name as seller_name, u.role as seller_role, u.phone as seller_phone, u.avatar_url as seller_avatar,
-                       (SELECT file_url FROM property_media WHERE property_id = p.id AND media_type = 'image' LIMIT 1) as cover_image
+                       COALESCE(u.name, 'Property Owner') as seller_name, 
+                       COALESCE(u.role, 'seller') as seller_role, 
+                       COALESCE(u.phone, '+91 9876543210') as seller_phone, 
+                       u.avatar_url as seller_avatar,
+                       COALESCE((SELECT COALESCE(media_url, file_url) FROM property_media WHERE property_id = p.id AND (media_type = 'image' OR media_type IS NULL) LIMIT 1), 'https://images.unsplash.com/photo-1560518883-ce09059eeffa') as cover_image
+                       ${userId ? `, EXISTS(SELECT 1 FROM favorites WHERE (buyer_id = $1 OR user_id = $1) AND property_id = p.id) as is_favorite` : ', FALSE as is_favorite'}
                 FROM properties p
-                JOIN users u ON p.seller_id = u.id
+                LEFT JOIN users u ON p.seller_id = u.id
                 WHERE 1=1
             `;
-            const params = [];
-            let pIdx = 1;
+            const params = userId ? [userId] : [];
+            let pIdx = userId ? 2 : 1;
 
             if (category && category !== 'all') {
                 sql += ` AND p.category = $${pIdx++}`;
@@ -61,13 +66,15 @@ exports.getProperties = async (req, res) => {
             let list = fallbackData.properties.map(p => {
                 const seller = fallbackData.users.find(u => u.id === p.seller_id) || {};
                 const coverMedia = fallbackData.property_media.find(m => m.property_id === p.id && m.media_type === 'image');
+                const isFavorite = userId ? fallbackData.favorites.some(f => (f.user_id === userId || f.buyer_id === userId) && f.property_id === p.id) : false;
                 return {
                     ...p,
                     seller_name: seller.name || 'Property Connect Agent',
                     seller_role: seller.role || 'broker',
                     seller_phone: seller.phone || '+91 9876543210',
                     seller_avatar: seller.avatar_url,
-                    cover_image: coverMedia ? coverMedia.file_url : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa'
+                    cover_image: coverMedia ? (coverMedia.file_url || coverMedia.media_url) : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa',
+                    is_favorite: isFavorite
                 };
             });
 
@@ -116,23 +123,33 @@ exports.getPropertyById = async (req, res) => {
         if (isPgConnected()) {
             const propRes = await query(
                 `SELECT p.*, u.name as seller_name, u.role as seller_role, u.phone as seller_phone, u.email as seller_email, u.avatar_url as seller_avatar
-                 FROM properties p JOIN users u ON p.seller_id = u.id WHERE p.id = $1`,
+                 FROM properties p LEFT JOIN users u ON p.seller_id = u.id WHERE p.id = $1`,
                 [propId]
             );
             if (propRes.rows.length === 0) return res.status(404).json({ error: 'Property not found' });
 
             const property = propRes.rows[0];
 
-            // increment views
-            await query('UPDATE properties SET views_count = views_count + 1 WHERE id = $1', [propId]);
+            // increment views safely
+            try {
+                await query('UPDATE properties SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1', [propId]);
+            } catch (vErr) {
+                // ignore error if views_count column unavailable
+            }
 
-            const mediaRes = await query('SELECT * FROM property_media WHERE property_id = $1', [propId]);
+            const mediaRes = await query('SELECT id, property_id, COALESCE(media_url, file_url) as file_url, COALESCE(media_url, file_url) as media_url, media_type FROM property_media WHERE property_id = $1', [propId]);
             const docsRes = await query('SELECT * FROM property_docs WHERE property_id = $1', [propId]);
-            const amenitiesRes = await query('SELECT amenity_name FROM property_amenities WHERE property_id = $1', [propId]);
+            let amenitiesList = [];
+            try {
+                const amenitiesRes = await query('SELECT amenity_name FROM property_amenities WHERE property_id = $1', [propId]);
+                amenitiesList = amenitiesRes.rows.map(a => a.amenity_name);
+            } catch (aErr) {
+                amenitiesList = [];
+            }
 
             property.media = mediaRes.rows;
             property.docs = docsRes.rows;
-            property.amenities = amenitiesRes.rows.map(a => a.amenity_name);
+            property.amenities = amenitiesList;
 
             return res.json(property);
         } else {
@@ -173,6 +190,30 @@ exports.createProperty = async (req, res) => {
         }
 
         const seller_id = req.user.id;
+
+        if (isPgConnected()) {
+            const listingCount = await query(
+                'SELECT COUNT(*)::int AS count FROM properties WHERE seller_id = $1',
+                [seller_id]
+            );
+
+            if (listingCount.rows[0].count >= 10) {
+                return res.status(403).json({
+                    code: 'SUBSCRIPTION_REQUIRED',
+                    error: 'You have reached the free limit of 10 property listings. Please subscribe to post more.'
+                });
+            }
+        } else {
+            const listingCount = fallbackData.properties.filter(property => property.seller_id === seller_id).length;
+
+            if (listingCount >= 10) {
+                return res.status(403).json({
+                    code: 'SUBSCRIPTION_REQUIRED',
+                    error: 'You have reached the free limit of 10 property listings. Please subscribe to post more.'
+                });
+            }
+        }
+
         const parsedAmenities = Array.isArray(amenities) ? amenities : (amenities ? JSON.parse(amenities) : []);
 
         // Uploaded files processing
@@ -211,9 +252,26 @@ exports.createProperty = async (req, res) => {
 
             const newProperty = propRes.rows[0];
 
-            // Insert media
+            // Insert media — use file_url as the primary column (matches schema.sql),
+            // then mirror it into media_url for backward compatibility.
             for (const item of mediaItems) {
-                await query('INSERT INTO property_media (property_id, file_url, media_type) VALUES ($1, $2, $3)', [newProperty.id, item.file_url, item.media_type]);
+                try {
+                    await query(
+                        'INSERT INTO property_media (property_id, file_url, media_type) VALUES ($1, $2, $3)',
+                        [newProperty.id, item.file_url, item.media_type]
+                    );
+                    // Mirror file_url into media_url if the column exists
+                    try {
+                        await query(
+                            'UPDATE property_media SET media_url = file_url WHERE property_id = $1 AND media_url IS NULL',
+                            [newProperty.id]
+                        );
+                    } catch (_mirrorErr) {
+                        // media_url column may not exist yet — safe to ignore
+                    }
+                } catch (mediaErr) {
+                    console.error('Error inserting property media:', mediaErr.message);
+                }
             }
             // Insert docs
             for (const item of docItems) {
@@ -221,7 +279,11 @@ exports.createProperty = async (req, res) => {
             }
             // Insert amenities
             for (const amenity of parsedAmenities) {
-                await query('INSERT INTO property_amenities (property_id, amenity_name) VALUES ($1, $2)', [newProperty.id, amenity]);
+                try {
+                    await query('INSERT INTO property_amenities (property_id, amenity_name) VALUES ($1, $2)', [newProperty.id, amenity]);
+                } catch (aErr) {
+                    // Ignore if schema differs
+                }
             }
 
             return res.status(201).json({ message: 'Property created successfully', property: newProperty });
@@ -255,8 +317,8 @@ exports.createProperty = async (req, res) => {
             return res.status(201).json({ message: 'Property created successfully', property: newProperty });
         }
     } catch (err) {
-        console.error('createProperty error:', err);
-        res.status(500).json({ error: 'Server error creating property.' });
+        console.error('createProperty error:', err.message, err.stack);
+        res.status(500).json({ error: 'Server error creating property: ' + err.message });
     }
 };
 
@@ -265,7 +327,7 @@ exports.getUserProperties = async (req, res) => {
         const userId = req.user.id;
         if (isPgConnected()) {
             const result = await query(
-                `SELECT p.*, (SELECT file_url FROM property_media WHERE property_id = p.id AND media_type = 'image' LIMIT 1) as cover_image
+                `SELECT p.*, COALESCE((SELECT COALESCE(media_url, file_url) FROM property_media WHERE property_id = p.id AND (media_type = 'image' OR media_type IS NULL) LIMIT 1), 'https://images.unsplash.com/photo-1560518883-ce09059eeffa') as cover_image
                  FROM properties p WHERE p.seller_id = $1 ORDER BY p.id DESC`,
                 [userId]
             );
@@ -273,63 +335,86 @@ exports.getUserProperties = async (req, res) => {
         } else {
             const userProps = fallbackData.properties.filter(p => p.seller_id === userId).map(p => {
                 const cover = fallbackData.property_media.find(m => m.property_id === p.id && m.media_type === 'image');
-                return { ...p, cover_image: cover ? cover.file_url : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa' };
+                return { ...p, cover_image: cover ? (cover.file_url || cover.media_url) : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa' };
             });
             return res.json(userProps.reverse());
         }
     } catch (err) {
+        console.error('getUserProperties error:', err);
         res.status(500).json({ error: 'Server error loading dashboard properties.' });
     }
 };
 
 exports.toggleFavorite = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { property_id } = req.body;
+        const userId = Number(req.user?.id);
+        const propertyId = Number(req.body?.property_id);
+
+        if (!userId || isNaN(userId)) {
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+        if (!propertyId || isNaN(propertyId)) {
+            return res.status(400).json({ error: 'Valid property_id is required.' });
+        }
 
         if (isPgConnected()) {
-            const check = await query('SELECT id FROM favorites WHERE user_id = $1 AND property_id = $2', [userId, property_id]);
+            const check = await query(
+                'SELECT id FROM favorites WHERE (buyer_id = $1 OR user_id = $2) AND property_id = $3',
+                [userId, userId, propertyId]
+            );
             if (check.rows.length > 0) {
-                await query('DELETE FROM favorites WHERE user_id = $1 AND property_id = $2', [userId, property_id]);
+                await query(
+                    'DELETE FROM favorites WHERE (buyer_id = $1 OR user_id = $2) AND property_id = $3',
+                    [userId, userId, propertyId]
+                );
                 return res.json({ favorited: false, message: 'Removed from favorites' });
             } else {
-                await query('INSERT INTO favorites (user_id, property_id) VALUES ($1, $2)', [userId, property_id]);
+                await query(
+                    'INSERT INTO favorites (buyer_id, user_id, property_id) VALUES ($1, $2, $3)',
+                    [userId, userId, propertyId]
+                );
                 return res.json({ favorited: true, message: 'Added to favorites' });
             }
         } else {
-            const idx = fallbackData.favorites.findIndex(f => f.user_id === userId && f.property_id === Number(property_id));
+            const idx = fallbackData.favorites.findIndex(f => (f.user_id === userId || f.buyer_id === userId) && f.property_id === propertyId);
             if (idx >= 0) {
                 fallbackData.favorites.splice(idx, 1);
                 return res.json({ favorited: false, message: 'Removed from favorites' });
             } else {
-                fallbackData.favorites.push({ id: fallbackData.favorites.length + 1, user_id: userId, property_id: Number(property_id), created_at: new Date() });
+                fallbackData.favorites.push({ id: fallbackData.favorites.length + 1, user_id: userId, buyer_id: userId, property_id: propertyId, created_at: new Date() });
                 return res.json({ favorited: true, message: 'Added to favorites' });
             }
         }
     } catch (err) {
+        console.error('toggleFavorite error:', err);
         res.status(500).json({ error: 'Error toggling favorite status.' });
     }
 };
 
 exports.getFavorites = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = Number(req.user?.id);
+        if (!userId || isNaN(userId)) {
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+
         if (isPgConnected()) {
             const result = await query(
-                `SELECT p.*, (SELECT file_url FROM property_media WHERE property_id = p.id AND media_type = 'image' LIMIT 1) as cover_image
-                 FROM favorites f JOIN properties p ON f.property_id = p.id WHERE f.user_id = $1 ORDER BY f.id DESC`,
-                [userId]
+                `SELECT p.*, TRUE as is_favorite, COALESCE((SELECT COALESCE(media_url, file_url) FROM property_media WHERE property_id = p.id AND (media_type = 'image' OR media_type IS NULL) LIMIT 1), 'https://images.unsplash.com/photo-1560518883-ce09059eeffa') as cover_image
+                 FROM favorites f JOIN properties p ON f.property_id = p.id WHERE (f.buyer_id = $1 OR f.user_id = $2) ORDER BY f.id DESC`,
+                [userId, userId]
             );
             return res.json(result.rows);
         } else {
-            const favPropIds = fallbackData.favorites.filter(f => f.user_id === userId).map(f => f.property_id);
+            const favPropIds = fallbackData.favorites.filter(f => f.user_id === userId || f.buyer_id === userId).map(f => f.property_id);
             const favProps = fallbackData.properties.filter(p => favPropIds.includes(p.id)).map(p => {
                 const cover = fallbackData.property_media.find(m => m.property_id === p.id && m.media_type === 'image');
-                return { ...p, cover_image: cover ? cover.file_url : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa' };
+                return { ...p, is_favorite: true, cover_image: cover ? (cover.file_url || cover.media_url) : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa' };
             });
             return res.json(favProps);
         }
     } catch (err) {
+        console.error('getFavorites error:', err);
         res.status(500).json({ error: 'Error loading favorites.' });
     }
 };

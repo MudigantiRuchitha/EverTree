@@ -59,3 +59,24 @@ exports.calculateEmi = (req, res) => {
         res.status(500).json({ error: 'EMI calculation error' });
     }
 };
+
+exports.getBrokerRequests = async (req, res) => {
+    try {
+        if (isPgConnected()) {
+            const result = await query(
+                `SELECT sl.*, u.name as user_name, u.email as user_email, u.phone as user_phone, u.role as user_role
+                 FROM service_leads sl
+                 LEFT JOIN users u ON sl.user_id = u.id
+                 WHERE sl.service_type = 'broker'
+                 ORDER BY sl.created_at DESC`
+            );
+            return res.json(result.rows);
+        } else {
+            const brokerLeads = fallbackData.service_leads.filter(l => l.service_type === 'broker');
+            return res.json(brokerLeads);
+        }
+    } catch (err) {
+        console.error('getBrokerRequests error:', err);
+        res.status(500).json({ error: 'Failed to fetch broker requests.' });
+    }
+};

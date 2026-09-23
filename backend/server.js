@@ -5,46 +5,127 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const { initDB, isPgConnected, query, fallbackData } = require('./config/db');
+const {
+    initDB,
+    isPgConnected,
+    query,
+    fallbackData
+} = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const propertyRoutes = require('./routes/propertyRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 
+// ✅ NEW: Subscription routes
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+
+
 const app = express();
 const server = http.createServer(app);
 
-// Enable CORS for frontend Vite app
+
+// ============================================================
+// CORS
+// ============================================================
+
 app.use(cors({
     origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+
+// ============================================================
+// BODY PARSERS
+// ============================================================
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/properties', propertyRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/services', serviceRoutes);
+// ============================================================
+// STATIC UPLOADS
+// ============================================================
 
-// Health check endpoint
+app.use(
+    '/uploads',
+    express.static(
+        path.join(__dirname, 'uploads')
+    )
+);
+
+
+// ============================================================
+// API ROUTES
+// ============================================================
+
+app.use(
+    '/api/auth',
+    authRoutes
+);
+
+app.use(
+    '/api/properties',
+    propertyRoutes
+);
+
+app.use(
+    '/api/chat',
+    chatRoutes
+);
+
+app.use(
+    '/api/services',
+    serviceRoutes
+);
+
+
+// ============================================================
+// SUBSCRIPTION API
+// ============================================================
+
+// ✅ NEW
+//
+// Available endpoints:
+//
+// GET  /api/subscriptions/plans
+// GET  /api/subscriptions/current
+// GET  /api/subscriptions/status
+// POST /api/subscriptions/subscribe
+//
+
+app.use(
+    '/api/subscriptions',
+    subscriptionRoutes
+);
+
+
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+
 app.get('/api/health', (req, res) => {
+
     res.json({
         status: 'online',
+
         app: 'Evertree Property Connect API',
-        database: isPgConnected() ? 'PostgreSQL Connected' : 'In-Memory Resilient Engine Active',
+
+        database: isPgConnected()
+            ? 'PostgreSQL Connected'
+            : 'In-Memory Resilient Engine Active',
+
         timestamp: new Date()
     });
+
 });
 
-// Socket.IO Real-time Chat Engine
+
+// ============================================================
+// SOCKET.IO
+// ============================================================
+
 const io = socketIo(server, {
     cors: {
         origin: '*',
@@ -52,96 +133,383 @@ const io = socketIo(server, {
     }
 });
 
-// Track online users: userId -> socketId
+
+// ============================================================
+// ONLINE USERS
+// ============================================================
+
 const onlineUsers = new Map();
 
+
+// ============================================================
+// SOCKET CONNECTION
+// ============================================================
+
 io.on('connection', (socket) => {
-    console.log(`⚡ Socket client connected: ${socket.id}`);
 
-    // User joins with their ID
+    console.log(
+        `⚡ Socket client connected: ${socket.id}`
+    );
+
+
+    // --------------------------------------------------------
+    // USER JOINS
+    // --------------------------------------------------------
+
     socket.on('join_user', (userId) => {
+
         if (userId) {
-            onlineUsers.set(Number(userId), socket.id);
+
+            onlineUsers.set(
+                Number(userId),
+                socket.id
+            );
+
             socket.userId = Number(userId);
-            io.emit('user_status', { userId: Number(userId), status: 'online' });
-            console.log(`👤 User ${userId} registered on socket ${socket.id}`);
-        }
-    });
 
-    // Send Real-time message
-    socket.on('send_message', async (data) => {
-        const { sender_id, receiver_id, property_id, message, media_url, media_type } = data;
-        const msgType = media_type || 'text';
-        const timestamp = new Date();
-
-        let savedMsg = {
-            sender_id: Number(sender_id),
-            receiver_id: Number(receiver_id),
-            property_id: property_id ? Number(property_id) : null,
-            message: message || '',
-            media_url: media_url || null,
-            media_type: msgType,
-            is_read: false,
-            created_at: timestamp
-        };
-
-        if (isPgConnected()) {
-            try {
-                const res = await query(
-                    `INSERT INTO chat_messages (sender_id, receiver_id, property_id, message, media_url, media_type, is_read)
-                     VALUES ($1, $2, $3, $4, $5, $6, FALSE) RETURNING *`,
-                    [sender_id, receiver_id, property_id || null, message || '', media_url || null, msgType]
-                );
-                savedMsg = res.rows[0];
-            } catch (err) {
-                console.error('Socket DB insert error:', err);
-            }
-        } else {
-            savedMsg.id = fallbackData.chat_messages.length + 1;
-            fallbackData.chat_messages.push(savedMsg);
-        }
-
-        // Deliver message to receiver if online
-        const receiverSocketId = onlineUsers.get(Number(receiver_id));
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit('receive_message', savedMsg);
-        }
-        // Send confirmation back to sender
-        socket.emit('message_sent', savedMsg);
-    });
-
-    // Mark messages as read (Read receipts)
-    socket.on('mark_read', async ({ sender_id, receiver_id }) => {
-        if (isPgConnected()) {
-            await query('UPDATE chat_messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2', [sender_id, receiver_id]);
-        } else {
-            fallbackData.chat_messages.forEach(m => {
-                if (m.sender_id === Number(sender_id) && m.receiver_id === Number(receiver_id)) {
-                    m.is_read = true;
+            io.emit(
+                'user_status',
+                {
+                    userId: Number(userId),
+                    status: 'online'
                 }
-            });
+            );
+
+            console.log(
+                `👤 User ${userId} registered on socket ${socket.id}`
+            );
         }
 
-        const senderSocketId = onlineUsers.get(Number(sender_id));
-        if (senderSocketId) {
-            io.to(senderSocketId).emit('messages_read_receipt', { readerId: Number(receiver_id) });
-        }
     });
 
-    socket.on('disconnect', () => {
-        if (socket.userId) {
-            onlineUsers.delete(socket.userId);
-            io.emit('user_status', { userId: socket.userId, status: 'offline' });
+
+    // --------------------------------------------------------
+    // SEND MESSAGE
+    // --------------------------------------------------------
+
+    socket.on(
+        'send_message',
+        async (data) => {
+
+            const {
+                sender_id,
+                receiver_id,
+                property_id,
+                message,
+                media_url,
+                media_type
+            } = data;
+
+
+            const msgType =
+                media_type || 'text';
+
+
+            const timestamp =
+                new Date();
+
+
+            let savedMsg = {
+
+                sender_id:
+                    Number(sender_id),
+
+                receiver_id:
+                    Number(receiver_id),
+
+                property_id:
+                    property_id
+                        ? Number(property_id)
+                        : null,
+
+                message:
+                    message || '',
+
+                media_url:
+                    media_url || null,
+
+                media_type:
+                    msgType,
+
+                is_read:
+                    false,
+
+                created_at:
+                    timestamp
+            };
+
+
+            // ------------------------------------------------
+            // SAVE MESSAGE TO POSTGRESQL
+            // ------------------------------------------------
+
+            if (isPgConnected()) {
+
+                try {
+
+                    const result =
+                        await query(
+                            `
+                            INSERT INTO chat_messages
+                            (
+                                sender_id,
+                                receiver_id,
+                                property_id,
+                                message,
+                                media_url,
+                                media_type,
+                                is_read
+                            )
+
+                            VALUES
+                            (
+                                $1,
+                                $2,
+                                $3,
+                                $4,
+                                $5,
+                                $6,
+                                FALSE
+                            )
+
+                            RETURNING *
+                            `,
+                            [
+                                sender_id,
+                                receiver_id,
+                                property_id || null,
+                                message || '',
+                                media_url || null,
+                                msgType
+                            ]
+                        );
+
+
+                    savedMsg =
+                        result.rows[0];
+
+                } catch (err) {
+
+                    console.error(
+                        'Socket DB insert error:',
+                        err
+                    );
+
+                }
+
+            } else {
+
+                // ------------------------------------------------
+                // FALLBACK MEMORY STORAGE
+                // ------------------------------------------------
+
+                savedMsg.id =
+                    fallbackData
+                        .chat_messages
+                        .length + 1;
+
+                fallbackData
+                    .chat_messages
+                    .push(savedMsg);
+
+            }
+
+
+            // ------------------------------------------------
+            // SEND MESSAGE TO RECEIVER
+            // ------------------------------------------------
+
+            const receiverSocketId =
+                onlineUsers.get(
+                    Number(receiver_id)
+                );
+
+
+            if (receiverSocketId) {
+
+                io.to(receiverSocketId)
+                    .emit(
+                        'receive_message',
+                        savedMsg
+                    );
+
+            }
+
+
+            // ------------------------------------------------
+            // CONFIRM TO SENDER
+            // ------------------------------------------------
+
+            socket.emit(
+                'message_sent',
+                savedMsg
+            );
+
         }
-        console.log(`🔌 Client disconnected: ${socket.id}`);
-    });
+    );
+
+
+    // --------------------------------------------------------
+    // MARK MESSAGES AS READ
+    // --------------------------------------------------------
+
+    socket.on(
+        'mark_read',
+        async ({
+            sender_id,
+            receiver_id
+        }) => {
+
+            if (isPgConnected()) {
+
+                try {
+
+                    await query(
+                        `
+                        UPDATE chat_messages
+
+                        SET is_read = TRUE
+
+                        WHERE sender_id = $1
+                          AND receiver_id = $2
+                        `,
+                        [
+                            sender_id,
+                            receiver_id
+                        ]
+                    );
+
+                } catch (err) {
+
+                    console.error(
+                        'Mark read DB error:',
+                        err
+                    );
+
+                }
+
+            } else {
+
+                fallbackData
+                    .chat_messages
+                    .forEach((m) => {
+
+                        if (
+                            m.sender_id ===
+                                Number(sender_id) &&
+                            m.receiver_id ===
+                                Number(receiver_id)
+                        ) {
+
+                            m.is_read = true;
+
+                        }
+
+                    });
+
+            }
+
+
+            const senderSocketId =
+                onlineUsers.get(
+                    Number(sender_id)
+                );
+
+
+            if (senderSocketId) {
+
+                io.to(senderSocketId)
+                    .emit(
+                        'messages_read_receipt',
+                        {
+                            readerId:
+                                Number(receiver_id)
+                        }
+                    );
+
+            }
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // DISCONNECT
+    // --------------------------------------------------------
+
+    socket.on(
+        'disconnect',
+        () => {
+
+            if (socket.userId) {
+
+                onlineUsers.delete(
+                    socket.userId
+                );
+
+                io.emit(
+                    'user_status',
+                    {
+                        userId:
+                            socket.userId,
+
+                        status:
+                            'offline'
+                    }
+                );
+
+            }
+
+
+            console.log(
+                `🔌 Client disconnected: ${socket.id}`
+            );
+
+        }
+    );
+
 });
 
-const PORT = process.env.PORT || 5000;
 
-// Initialize database connection & launch server
-initDB().then(() => {
-    server.listen(PORT, () => {
-        console.log(`🚀 Evertree Backend Server running on http://localhost:${PORT}`);
+// ============================================================
+// SERVER PORT
+// ============================================================
+
+const PORT =
+    process.env.PORT || 5000;
+
+
+// ============================================================
+// DATABASE INITIALIZATION
+// ============================================================
+
+initDB()
+
+    .then(() => {
+
+        server.listen(
+            PORT,
+            () => {
+
+                console.log(
+                    `🚀 Evertree Backend Server running on http://localhost:${PORT}`
+                );
+
+                console.log(
+                    `📦 Subscription API available at http://localhost:${PORT}/api/subscriptions`
+                );
+
+            }
+        );
+
+    })
+
+    .catch(() => {
+
+        console.error(
+            'Backend stopped because PostgreSQL is unavailable. Check backend/.env credentials.'
+        );
+
+        process.exitCode = 1;
+
     });
-});

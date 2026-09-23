@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import AuthModal from './AuthModal';
 import AdminVerificationModal from './AdminVerificationModal';
 
@@ -35,6 +36,7 @@ import AdminVerificationModal from './AdminVerificationModal';
 const Navbar = ({ onOpenChat }) => {
 
     const { user, logout } = useAuth();
+    const { cartCount } = useCart();
 
     const pathname = usePathname();
 
@@ -367,12 +369,13 @@ const Navbar = ({ onOpenChat }) => {
                             {navLinks.map(({ href, label, icon: Icon }) => {
 
                                 const active = isActive(href);
+                                const isCartLink = href === '/cart';
 
                                 return (
                                     <Link
                                         key={href}
                                         href={href}
-                                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                        className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
                                             active
                                                 ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -382,6 +385,12 @@ const Navbar = ({ onOpenChat }) => {
                                         <Icon className="w-4 h-4" />
 
                                         {label}
+
+                                        {isCartLink && cartCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+                                                {cartCount > 9 ? '9+' : cartCount}
+                                            </span>
+                                        )}
 
                                     </Link>
                                 );

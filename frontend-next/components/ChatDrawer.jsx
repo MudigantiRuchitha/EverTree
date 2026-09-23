@@ -76,9 +76,13 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     const loadConversations = async () => {
         try {
             const res = await chatAPI.getConversations();
-            setConversations(res.data.conversations || []);
-            if (!activePartner && res.data.conversations?.length > 0) {
-                setActivePartner(res.data.conversations[0]);
+            // Backend returns array directly
+            const convList = Array.isArray(res.data)
+                ? res.data
+                : (res.data?.conversations || []);
+            setConversations(convList);
+            if (!activePartner && convList.length > 0) {
+                setActivePartner(convList[0]);
             }
         } catch (err) {
             console.error('Error loading conversations:', err);
@@ -88,7 +92,11 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     const loadMessages = async (partnerId) => {
         try {
             const res = await chatAPI.getMessages(partnerId);
-            setMessages(res.data.messages || []);
+            // Backend returns array directly
+            const msgList = Array.isArray(res.data)
+                ? res.data
+                : (res.data?.messages || []);
+            setMessages(msgList);
             if (socket && user) {
                 socket.emit('mark_read', { sender_id: partnerId, receiver_id: user.id });
             }

@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { query, isPgConnected, fallbackData } = require('../config/db');
+const { query, isPgConnected } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 const { sendOtpEmail } = require('../config/smtp');
 
@@ -45,6 +45,13 @@ exports.sendOtp = async (req, res) => {
         let mailResult = null;
         if (email) {
             mailResult = await sendOtpEmail(email, emailOtp, name || 'Valued Member');
+        }
+
+        if (!mailResult?.success) {
+            otpStore.delete(key);
+            return res.status(503).json({
+                error: 'Unable to send the verification email. Check the SMTP configuration and try again.'
+            });
         }
 
         
@@ -103,8 +110,7 @@ exports.verifyOtp = async (req, res) => {
         }
 
         // Check OTP
-        const isEmailMatch =
-            record.emailOtp === emailOtp || emailOtp === '1234';
+        const isEmailMatch = record.emailOtp === emailOtp;
 
         if (!isEmailMatch) {
             return res.status(400).json({
@@ -131,6 +137,10 @@ exports.verifyOtp = async (req, res) => {
 
 exports.register = async (req, res) => {
     try {
+        if (!isPgConnected()) {
+            return res.status(503).json({ error: 'Database unavailable. Registration was not saved.' });
+        }
+
         const {
             name,
             email,
@@ -166,119 +176,75 @@ exports.register = async (req, res) => {
         const verification_id = generateVerificationId(role);
         const approval_status = role === 'buyer' ? 'approved' : 'pending_admin_verification';
 
-        if (isPgConnected()) {
-            const checkUser = await query('SELECT id FROM users WHERE email = $1 OR phone = $2', [email, phone]);
-            if (checkUser.rows.length > 0) {
-                return res.status(400).json({ error: 'User with this email or contact number already exists.' });
-            }
+        const checkUser = await query('SELECT id FROM users WHERE email = $1 OR phone = $2', [email, phone]);
+        if (checkUser.rows.length > 0) {
+            return res.status(400).json({ error: 'User with this email or contact number already exists.' });
+        }
 
-            const result = await query(
-                `INSERT INTO users 
+        const result = await query(
+            `INSERT INTO users
                  (name, email, password_hash, role, phone, verification_id, phone_verified, email_verified, approval_status, govt_id_type, govt_id_number, rera_number, agency_license, ownership_proof_ref)
                  VALUES ($1, $2, $3, $4, $5, $6, TRUE, TRUE, $7, $8, $9, $10, $11, $12) 
                  RETURNING id, name, email, role, phone, verification_id, phone_verified, email_verified, approval_status, rera_number, created_at`,
-                [
-                    name, email, hashedPassword, role, phone, verification_id, approval_status,
-                    govt_id_type || null, govt_id_number || null, rera_number || null, agency_license || null, ownership_proof_ref || null
-                ]
-            );
+            [
+                name, email, hashedPassword, role, phone, verification_id, approval_status,
+                govt_id_type || null, govt_id_number || null, rera_number || null, agency_license || null, ownership_proof_ref || null
+            ]
+        );
 
-            const user = result.rows[0];
-            const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
+        const user = result.rows[0];
+        console.log(`Registration saved to public.users: id=${user.id}, email=${user.email}, role=${user.role}`);
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
 
-            return res.status(201).json({
-                message: role === 'buyer' ? 'Account verified and created!' : 'Account registered! Your legal details & RERA info are submitted for Admin Verification.',
-                token,
-                verification_id: user.verification_id,
-                user
-            });
-        } else {
-            const existing = fallbackData.users.find(u => u.email.toLowerCase() === email.toLowerCase() || u.phone === phone);
-            if (existing) {
-                return res.status(400).json({ error: 'User with this email or contact number already exists.' });
-            }
-
-            const newUser = {
-                id: fallbackData.users.length + 1,
-                name,
-                email,
-                password_hash: hashedPassword,
-                role,
-                phone,
-                verification_id,
-                phone_verified: true,
-                email_verified: true,
-                approval_status,
-                govt_id_type: govt_id_type || null,
-                govt_id_number: govt_id_number || null,
-                rera_number: rera_number || null,
-                agency_license: agency_license || null,
-                ownership_proof_ref: ownership_proof_ref || null,
-                avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
-                created_at: new Date()
-            };
-            fallbackData.users.push(newUser);
-
-            const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name, verification_id: newUser.verification_id }, JWT_SECRET, { expiresIn: '7d' });
-            const { password_hash, ...userWithoutPass } = newUser;
-
-            return res.status(201).json({
-                message: role === 'buyer' ? 'Account verified and created!' : 'Account registered! Submitted for Admin Verification.',
-                token,
-                verification_id: newUser.verification_id,
-                user: userWithoutPass
-            });
-        }
+        return res.status(201).json({
+            message: role === 'buyer' ? 'Account verified and created!' : 'Account registered! Your legal details & RERA info are submitted for Admin Verification.',
+            token,
+            verification_id: user.verification_id,
+            user
+        });
     } catch (err) {
         console.error('Register error:', err);
+        if (err.code === '23505') {
+            return res.status(409).json({ error: 'An account with this email, phone number, or verification ID already exists.' });
+        }
         res.status(500).json({ error: 'Server error during registration.' });
     }
 };
 
 exports.login = async (req, res) => {
     try {
+        if (!isPgConnected()) {
+            return res.status(503).json({ error: 'Database unavailable. Login cannot be completed.' });
+        }
+
         const { identifier, password } = req.body;
         if (!identifier || !password) {
-            return res.status(400).json({ error: 'Contact Number / Email / Verification ID and Password are required.' });
+            return res.status(400).json({ error: 'Email or Verification ID and password are required.' });
         }
 
-        if (isPgConnected()) {
-            const result = await query(
-                'SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $1 OR UPPER(verification_id) = UPPER($1)',
-                [identifier]
-            );
+        const normalizedIdentifier = identifier.trim();
 
-            if (result.rows.length === 0) {
-                return res.status(400).json({ error: 'Invalid credentials or Verification ID.' });
-            }
+        const result = await query(
+            `SELECT * FROM users
+                 WHERE (LOWER(email) = LOWER($1) AND email_verified = TRUE)
+                    OR UPPER(verification_id) = UPPER($1)`,
+            [normalizedIdentifier]
+        );
 
-            const user = result.rows[0];
-            const isMatch = await bcrypt.compare(password, user.password_hash);
-            if (!isMatch) {
-                return res.status(400).json({ error: 'Invalid credentials or Password.' });
-            }
-
-            const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
-            delete user.password_hash;
-
-            return res.json({ message: 'Login successful', token, user });
-        } else {
-            const user = fallbackData.users.find(u => 
-                u.email.toLowerCase() === identifier.toLowerCase() || 
-                u.phone === identifier || 
-                (u.verification_id && u.verification_id.toUpperCase() === identifier.toUpperCase())
-            );
-
-            if (!user) {
-                return res.status(400).json({ error: 'Invalid credentials or Verification ID. Demo logins: EVT-BRK-89241 or EVT-SEL-47120' });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password_hash) || password === 'password123' || true;
-            const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
-            const { password_hash, ...userWithoutPass } = user;
-
-            return res.json({ message: 'Login successful', token, user: userWithoutPass });
+        if (result.rows.length === 0) {
+            return res.status(400).json({ error: 'Invalid credentials or Verification ID.' });
         }
+
+        const user = result.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Invalid credentials or Password.' });
+        }
+
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
+        delete user.password_hash;
+
+        return res.json({ message: 'Login successful', token, user });
     } catch (err) {
         console.error('Login error:', err);
         res.status(500).json({ error: 'Server error during login.' });

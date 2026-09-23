@@ -81,10 +81,11 @@ const AuthModal = ({ mode = 'login', onClose }) => {
         setRegStep(2);
 
     } catch (err) {
-        setError(
-            err.response?.data?.error ||
-            'Failed to send email OTP. Please try again.'
-        );
+        setError(err.response?.data?.error || (
+            err.request
+                ? 'Backend unavailable. Start the backend and verify the PostgreSQL password in backend/.env.'
+                : 'Failed to send email OTP. Please try again.'
+        ));
     } finally {
         setLoading(false);
     }
@@ -166,7 +167,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
     try {
         const loggedInUser = await login({
-            identifier: loginIdentifier,
+            identifier: loginIdentifier.trim(),
             password
         });
 
@@ -187,7 +188,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     } catch (err) {
         setError(
             err.response?.data?.error ||
-            'Login failed. Check your Contact Number, Email, or Verification ID.'
+            'Login failed. Use a verified email or Verification ID with your password.'
         );
     } finally {
         setLoading(false);
@@ -204,7 +205,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md sm:max-w-lg p-5 sm:p-7 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl w-full max-w-md sm:max-w-lg p-4 sm:p-7 shadow-2xl relative max-h-[94vh] sm:max-h-[92vh] overflow-y-auto">
                 
                 {/* Close Button */}
                 <button 
@@ -223,7 +224,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                         {isLogin ? 'Member Login' : 'Evertree Verified Registration'}
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                        {isLogin ? 'Log in with Email, Mobile Number, or Verification ID' : 'Email OTP Verification'}
+                        {isLogin ? 'Log in with a verified email or Verification ID' : 'Email OTP Verification'}
                     </p>
                 </div>
 
@@ -304,12 +305,12 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                     <form onSubmit={handleLoginSubmit} className="space-y-4">
                         <div className="space-y-1.5">
                             <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                <KeyRound className="w-3.5 h-3.5 text-emerald-600" /> Mobile / Email / Verification ID
+                                <KeyRound className="w-3.5 h-3.5 text-emerald-600" /> Email or Verification ID
                             </label>
                             <input 
                                 type="text" 
                                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all" 
-                                placeholder="e.g. EVT-BUY-89241 or 9876543210 or name@evertree.in" 
+                                placeholder="name@evertree.in or EVT-BUY-89241"
                                 value={loginIdentifier} 
                                 onChange={(e) => setLoginIdentifier(e.target.value)} 
                                 required 
@@ -505,6 +506,9 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                         {/* STEP 3: Legal Requirements for Seller & Broker */}
                         {regStep === 3 && (
                             <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                    Email verified for <strong>{email}</strong>. Complete the legal details below to save your seller account in the database.
+                                </div>
                                 {role === 'seller' ? (
                                     <div className="space-y-3">
                                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">

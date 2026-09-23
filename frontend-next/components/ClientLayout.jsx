@@ -3,6 +3,7 @@ import React from 'react';
 import { AuthProvider } from '../context/AuthContext';
 import { SocketProvider } from '../context/SocketContext';
 import { ChatProvider, useChat } from '../context/ChatContext';
+import { CartProvider } from '../context/CartContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
@@ -25,9 +26,11 @@ export default function ClientLayout({ children }) {
         <AuthProvider>
             <SocketProvider>
                 <ChatProvider>
-                    <LayoutInner>
-                        {children}
-                    </LayoutInner>
+                    <CartProvider>
+                        <LayoutInner>
+                            {children}
+                        </LayoutInner>
+                    </CartProvider>
                 </ChatProvider>
             </SocketProvider>
         </AuthProvider>
