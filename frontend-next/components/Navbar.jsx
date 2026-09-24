@@ -409,7 +409,19 @@ const Navbar = ({ onOpenChat }) => {
 
                             {user ? (
 
-                                <>
+                                <>  
+                                {/* =====================================
+                                            DESKTOP LIVE CHAT
+                                ===================================== */}
+
+                                    <button
+                                        onClick={onOpenChat}
+                                        className="p-2.5 rounded-lg text-emerald-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                        title="Live Chat"
+                                    >
+                                        <MessageSquare className="w-5 h-5" />
+                                    </button>
+                        
 
                                     {/* =====================================
                                         SELLER / BROKER POST PROPERTY

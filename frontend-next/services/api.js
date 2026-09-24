@@ -176,48 +176,14 @@ api.interceptors.response.use(
 // =====================================================
 
 export const authAPI = {
-
-    sendOtp: (data) =>
-        api.post(
-            '/auth/send-otp',
-            data
-        ),
-
-    verifyOtp: (data) =>
-        api.post(
-            '/auth/verify-otp',
-            data
-        ),
-
-    register: (userData) =>
-        api.post(
-            '/auth/register',
-            userData
-        ),
-
-    login: (credentials) =>
-        api.post(
-            '/auth/login',
-            credentials
-        ),
-
-    getProfile: () =>
-        api.get(
-            '/auth/profile'
-        ),
-
-    getPendingVerifications: () =>
-        api.get(
-            '/auth/pending-verifications'
-        ),
-
-    approveUser: (user_id) =>
-        api.post(
-            '/auth/approve-user',
-            {
-                user_id
-            }
-        )
+    sendOtp: (data) => api.post('/auth/send-otp', data),
+    verifyOtp: (data) => api.post('/auth/verify-otp', data),
+    register: (userData) => api.post('/auth/register', userData),
+    login: (credentials) => api.post('/auth/login', credentials),
+    getProfile: () => api.get('/auth/profile'),
+    changePassword: (data) => api.post('/auth/change-password', data),
+    getPendingVerifications: () => api.get('/auth/pending-verifications'),
+    approveUser: (user_id) => api.post('/auth/approve-user', { user_id })
 };
 
 
@@ -379,22 +345,14 @@ export const propertyAPI = {
 // =====================================================
 
 export const chatAPI = {
-
-    getConversations: () =>
-        api.get(
-            '/chat/conversations'
-        ),
-
-    getMessages: (partnerId) =>
-        api.get(
-            `/chat/messages/${partnerId}`
-        ),
-
-    uploadChatFile: (formData) =>
-        api.post(
-            '/chat/upload',
-            formData
-        )
+    getConversations: () => api.get('/chat/conversations'),
+    getMessages: (partnerId) => api.get(`/chat/messages/${partnerId}`),
+    getAdminConversations: () => api.get('/chat/admin/conversations'),
+    sendMessage: (data) => api.post('/chat/messages', data),
+    
+    uploadChatFile: (formData) => api.post('/chat/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    })
 };
 
 
@@ -422,41 +380,27 @@ export const serviceAPI = {
         )
 };
 
+export const adminAPI = {
+    getOverview: () => api.get('/admin/overview'),
 
-// =====================================================
-// SUBSCRIPTION API
-// =====================================================
+    getUsers: () => api.get('/admin/users'),
 
-export const subscriptionAPI = {
+    getPendingUsers: () => api.get('/admin/users/pending'),
 
-    getPlans: () =>
-        api.get(
-            '/subscriptions/plans'
-        ),
+    approveUser: (id) =>
+        api.patch(`/admin/users/${id}/approve`),
 
-    getCurrentSubscription: () =>
-        api.get(
-            '/subscriptions/current'
-        ),
+    rejectUser: (id, remarks) =>
+        api.patch(`/admin/users/${id}/reject`, { remarks }),
 
-    getStatus: () =>
-        api.get(
-            '/subscriptions/status'
-        ),
+    getProperties: () =>
+        api.get('/admin/properties'),
 
-    subscribe: (planId) =>
-        api.post(
-            '/subscriptions/subscribe',
-            {
-                plan_id:
-                    Number(planId)
-            }
-        )
+    updatePropertyStatus: (id, status, remarks) =>
+        api.patch(`/admin/properties/${id}/status`, {
+            status,
+            remarks
+        })
 };
-
-
-// =====================================================
-// EXPORT
-// =====================================================
 
 export default api;

@@ -1453,89 +1453,115 @@ exports.toggleFavorite = async (req, res) => {
             );
 
 
-            return res.json({
-
-                favorited: true,
-
-                message:
-                    'Added to favorites'
-            });
-
-        } else {
-
-            const idx =
-                fallbackData.favorites.findIndex(
-                    f =>
-                        (
-                            f.user_id === userId ||
-                            f.buyer_id === userId
-                        ) &&
-                        f.property_id === propertyId
-                );
-
-
-            if (idx >= 0) {
-
-                fallbackData.favorites.splice(
-                    idx,
-                    1
-                );
-
-
-                return res.json({
-
-                    favorited: false,
-
-                    message:
-                        'Removed from favorites'
-                });
+            // Insert media
+            for (const item of mediaItems) {
+                await query('INSERT INTO property_media (property_id, media_url, media_type) VALUES ($1, $2, $3)', [newProperty.id, item.file_url, item.media_type]);
             }
+            // Insert documents
+for (const item of docItems) {
+    await query(
+        `INSERT INTO property_documents
+        (property_id, document_type, document_url, original_filename)
+        VALUES ($1, $2, $3, $4)`,
+        [
+            newProperty.id,
+            'property_document',
+            item.file_url,
+            item.title
+        ]
+    );
+}
 
+// Insert amenities
+for (const amenity of parsedAmenities) {
+    const amenityName = String(amenity).trim();
 
-            fallbackData.favorites.push({
+    const amenityResult = await query(
+        `SELECT id
+         FROM amenities
+         WHERE LOWER(name) = LOWER($1)
+         LIMIT 1`,
+        [amenityName]
+    );
 
-                id:
-                    fallbackData.favorites.length + 1,
+    if (amenityResult.rows.length > 0) {
+        await query(
+            `INSERT INTO property_amenities
+            (property_id, amenity_id)
+            VALUES ($1, $2)`,
+            [newProperty.id, amenityResult.rows[0].id]
+        );
+    }
+}
 
-                user_id:
-                    userId,
+// Return successful favorite response
+return res.json({
+    favorited: true,
+    message: 'Added to favorites'
+});
 
-                buyer_id:
-                    userId,
+} else {
 
-                property_id:
-                    propertyId,
-
-                created_at:
-                    new Date()
-            });
-
-
-            return res.json({
-
-                favorited: true,
-
-                message:
-                    'Added to favorites'
-            });
-        }
-
-    } catch (err) {
-
-        console.error(
-            'toggleFavorite error:',
-            err
+    const idx =
+        fallbackData.favorites.findIndex(
+            f =>
+                (
+                    f.user_id === userId ||
+                    f.buyer_id === userId
+                ) &&
+                f.property_id === propertyId
         );
 
-        return res.status(500).json({
+    if (idx >= 0) {
 
-            error:
-                'Error toggling favorite status.'
+        fallbackData.favorites.splice(
+            idx,
+            1
+        );
+
+        return res.json({
+            favorited: false,
+            message: 'Removed from favorites'
         });
     }
+
+    fallbackData.favorites.push({
+
+        id:
+            fallbackData.favorites.length + 1,
+
+        user_id:
+            userId,
+
+        buyer_id:
+            userId,
+
+        property_id:
+            propertyId,
+
+        created_at:
+            new Date()
+    });
+
+    return res.json({
+        favorited: true,
+        message: 'Added to favorites'
+    });
+}
+
+} catch (err) {
+
+    console.error(
+        'toggleFavorite error:',
+        err
+    );
+
+    return res.status(500).json({
+        error:
+            'Error toggling favorite status.'
+    });
+}
 };
-
-
 // =====================================================
 // GET FAVORITES
 // =====================================================

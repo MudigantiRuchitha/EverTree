@@ -16,6 +16,7 @@ const authRoutes = require('./routes/authRoutes');
 const propertyRoutes = require('./routes/propertyRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // ✅ NEW: Subscription routes
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
@@ -44,66 +45,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// ============================================================
-// STATIC UPLOADS
-// ============================================================
-
-app.use(
-    '/uploads',
-    express.static(
-        path.join(__dirname, 'uploads')
-    )
-);
-
-
-// ============================================================
-// API ROUTES
-// ============================================================
-
-app.use(
-    '/api/auth',
-    authRoutes
-);
-
-app.use(
-    '/api/properties',
-    propertyRoutes
-);
-
-app.use(
-    '/api/chat',
-    chatRoutes
-);
-
-app.use(
-    '/api/services',
-    serviceRoutes
-);
-
-
-// ============================================================
-// SUBSCRIPTION API
-// ============================================================
-
-// ✅ NEW
-//
-// Available endpoints:
-//
-// GET  /api/subscriptions/plans
-// GET  /api/subscriptions/current
-// GET  /api/subscriptions/status
-// POST /api/subscriptions/subscribe
-//
-
-app.use(
-    '/api/subscriptions',
-    subscriptionRoutes
-);
-
-
-// ============================================================
-// HEALTH CHECK
-// ============================================================
+// Mount API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/properties', propertyRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
 

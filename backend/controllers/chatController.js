@@ -105,3 +105,115 @@ exports.uploadChatAttachment = async (req, res) => {
         res.status(500).json({ error: 'Failed to upload chat file.' });
     }
 };
+exports.getAdminConversations = async (req, res) => {
+    try {
+        if (isPgConnected()) {
+            const result = await query(`
+                SELECT DISTINCT ON (conversation_key)
+                    conversation_key,
+                    sender_id,
+                    receiver_id,
+                    sender_name,
+                    receiver_name,
+                    last_message,
+                    media_type,
+                    created_at
+                FROM (
+                    SELECT
+                        LEAST(c.sender_id, c.receiver_id) || '-' ||
+                        GREATEST(c.sender_id, c.receiver_id) AS conversation_key,
+                        c.sender_id,
+                        c.receiver_id,
+                        u1.name AS sender_name,
+                        u2.name AS receiver_name,
+                        c.message AS last_message,
+                        c.media_type,
+                        c.created_at,
+                        c.id
+                    FROM chat_messages c
+                    JOIN users u1 ON c.sender_id = u1.id
+                    JOIN users u2 ON c.receiver_id = u2.id
+                ) conversations
+                ORDER BY conversation_key, created_at DESC
+            `);
+
+            return res.json(result.rows);
+        }
+
+        return res.json([]);
+    } catch (err) {
+        console.error("getAdminConversations error:", err);
+
+        res.status(500).json({
+            error: "Failed to fetch admin conversations."
+        });
+    }
+};
+exports.sendMessage = async (req, res) => {
+    try {
+        const senderId = req.user.id;
+
+        const {
+            receiver_id,
+            message,
+            media_url,
+            media_type = "text"
+        } = req.body;
+
+        if (!receiver_id) {
+            return res.status(400).json({
+                error: "Receiver is required."
+            });
+        }
+
+        const receiverId = Number(receiver_id);
+
+        if (!Number.isInteger(receiverId)) {
+            return res.status(400).json({
+                error: "Invalid receiver."
+            });
+        }
+
+        if (senderId === receiverId) {
+            return res.status(400).json({
+                error: "You cannot send a message to yourself."
+            });
+        }
+
+        if (media_type === "text" && (!message || !message.trim())) {
+            return res.status(400).json({
+                error: "Message cannot be empty."
+            });
+        }
+
+        if (!isPgConnected()) {
+            return res.status(503).json({
+                error: "Database is not connected."
+            });
+        }
+
+        const result = await query(
+            `INSERT INTO chat_messages
+                (sender_id, receiver_id, message, media_type, media_url)
+             VALUES
+                ($1, $2, $3, $4, $5)
+             RETURNING *`,
+            [
+                senderId,
+                receiverId,
+                message ? message.trim() : "Voice Message",
+                media_type,
+                media_url || null
+            ]
+        );
+
+        return res.status(201).json(result.rows[0]);
+
+    } catch (err) {
+        console.error("sendMessage error:", err);
+
+        return res.status(500).json({
+            error: "Failed to send message."
+        });
+    }
+};
