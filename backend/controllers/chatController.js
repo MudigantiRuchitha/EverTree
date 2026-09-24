@@ -95,7 +95,7 @@ exports.uploadChatAttachment = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded.' });
         }
-        const fileUrl = `/uploads/${req.file.filename}`;
+        const fileUrl = `/uploads/properties/${req.file.filename}`;
         let mediaType = 'file';
         if (req.file.mimetype.includes('image')) mediaType = 'image';
         else if (req.file.mimetype.includes('audio')) mediaType = 'voice';

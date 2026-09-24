@@ -60,10 +60,15 @@ import axios from 'axios';
 
 const API_BASE_URL = '/api';
 
+
+// =====================================================
+// AXIOS INSTANCE
+// =====================================================
+
 const api = axios.create({
     baseURL: API_BASE_URL,
+    timeout: 30000,
     headers: {
-        'Content-Type': 'application/json',
         Accept: 'application/json'
     }
 });
@@ -75,16 +80,62 @@ const api = axios.create({
 
 api.interceptors.request.use(
     (config) => {
+
+        // -------------------------------------------------
+        // JWT TOKEN
+        // -------------------------------------------------
+
         if (typeof window !== 'undefined') {
+
             const token =
                 localStorage.getItem('evertree_token');
 
             if (token) {
-                config.headers = config.headers || {};
+
+                config.headers =
+                    config.headers || {};
+
                 config.headers.Authorization =
                     `Bearer ${token}`;
             }
         }
+
+
+        // -------------------------------------------------
+        // FORM DATA / JSON CONTENT TYPE
+        // -------------------------------------------------
+
+        /*
+         * IMPORTANT:
+         *
+         * For FormData requests, DO NOT manually set
+         * Content-Type.
+         *
+         * The browser will automatically generate:
+         *
+         * multipart/form-data;
+         * boundary=---------------------------
+         *
+         * This is required by Multer on the backend.
+         */
+
+        if (
+            typeof FormData !== 'undefined' &&
+            config.data instanceof FormData
+        ) {
+
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+
+        } else {
+
+            config.headers =
+                config.headers || {};
+
+            config.headers['Content-Type'] =
+                'application/json';
+        }
+
 
         return config;
     },
@@ -100,6 +151,7 @@ api.interceptors.request.use(
 // =====================================================
 
 api.interceptors.response.use(
+
     (response) => {
         return response;
     },
@@ -111,7 +163,7 @@ api.interceptors.response.use(
             error.config?.method?.toUpperCase(),
             error.config?.url,
             error.response?.status,
-            error.response?.data
+            error.response?.data || error.message
         );
 
         return Promise.reject(error);
@@ -126,27 +178,46 @@ api.interceptors.response.use(
 export const authAPI = {
 
     sendOtp: (data) =>
-        api.post('/auth/send-otp', data),
+        api.post(
+            '/auth/send-otp',
+            data
+        ),
 
     verifyOtp: (data) =>
-        api.post('/auth/verify-otp', data),
+        api.post(
+            '/auth/verify-otp',
+            data
+        ),
 
     register: (userData) =>
-        api.post('/auth/register', userData),
+        api.post(
+            '/auth/register',
+            userData
+        ),
 
     login: (credentials) =>
-        api.post('/auth/login', credentials),
+        api.post(
+            '/auth/login',
+            credentials
+        ),
 
     getProfile: () =>
-        api.get('/auth/profile'),
+        api.get(
+            '/auth/profile'
+        ),
 
     getPendingVerifications: () =>
-        api.get('/auth/pending-verifications'),
+        api.get(
+            '/auth/pending-verifications'
+        ),
 
     approveUser: (user_id) =>
-        api.post('/auth/approve-user', {
-            user_id
-        })
+        api.post(
+            '/auth/approve-user',
+            {
+                user_id
+            }
+        )
 };
 
 
@@ -161,9 +232,12 @@ export const propertyAPI = {
     // -------------------------------------------------
 
     getProperties: (params = {}) =>
-        api.get('/properties', {
-            params
-        }),
+        api.get(
+            '/properties',
+            {
+                params
+            }
+        ),
 
 
     // -------------------------------------------------
@@ -173,8 +247,11 @@ export const propertyAPI = {
     getPropertyById: (id) => {
 
         if (!id) {
+
             return Promise.reject(
-                new Error('Property ID is required.')
+                new Error(
+                    'Property ID is required.'
+                )
             );
         }
 
@@ -188,17 +265,25 @@ export const propertyAPI = {
     // Create property
     // -------------------------------------------------
 
-    createProperty: (formData) =>
-        api.post(
+    createProperty: (formData) => {
+
+        if (
+            typeof FormData !== 'undefined' &&
+            !(formData instanceof FormData)
+        ) {
+
+            return Promise.reject(
+                new Error(
+                    'createProperty requires FormData.'
+                )
+            );
+        }
+
+        return api.post(
             '/properties',
-            formData,
-            {
-                headers: {
-                    'Content-Type':
-                        'multipart/form-data'
-                }
-            }
-        ),
+            formData
+        );
+    },
 
 
     // -------------------------------------------------
@@ -206,7 +291,30 @@ export const propertyAPI = {
     // -------------------------------------------------
 
     getMyListings: () =>
-        api.get('/properties/my-listings'),
+        api.get(
+            '/properties/my-listings'
+        ),
+
+
+    // -------------------------------------------------
+    // Delete seller property
+    // -------------------------------------------------
+
+    deleteProperty: (propertyId) => {
+
+        if (!propertyId) {
+
+            return Promise.reject(
+                new Error(
+                    'Property ID is required.'
+                )
+            );
+        }
+
+        return api.delete(
+            `/properties/${Number(propertyId)}`
+        );
+    },
 
 
     // -------------------------------------------------
@@ -216,6 +324,7 @@ export const propertyAPI = {
     toggleFavorite: (property_id) => {
 
         if (!property_id) {
+
             return Promise.reject(
                 new Error(
                     'Property ID is required.'
@@ -226,7 +335,8 @@ export const propertyAPI = {
         return api.post(
             '/properties/favorite',
             {
-                property_id: Number(property_id)
+                property_id:
+                    Number(property_id)
             }
         );
     },
@@ -237,7 +347,9 @@ export const propertyAPI = {
     // -------------------------------------------------
 
     getFavorites: () =>
-        api.get('/properties/favorites'),
+        api.get(
+            '/properties/favorites'
+        ),
 
 
     // -------------------------------------------------
@@ -256,7 +368,9 @@ export const propertyAPI = {
     // -------------------------------------------------
 
     getEnquiries: () =>
-        api.get('/properties/enquiries')
+        api.get(
+            '/properties/enquiries'
+        )
 };
 
 
@@ -267,7 +381,9 @@ export const propertyAPI = {
 export const chatAPI = {
 
     getConversations: () =>
-        api.get('/chat/conversations'),
+        api.get(
+            '/chat/conversations'
+        ),
 
     getMessages: (partnerId) =>
         api.get(
@@ -277,13 +393,7 @@ export const chatAPI = {
     uploadChatFile: (formData) =>
         api.post(
             '/chat/upload',
-            formData,
-            {
-                headers: {
-                    'Content-Type':
-                        'multipart/form-data'
-                }
-            }
+            formData
         )
 };
 
@@ -307,7 +417,9 @@ export const serviceAPI = {
         ),
 
     getBrokerRequests: () =>
-        api.get('/services/broker-requests')
+        api.get(
+            '/services/broker-requests'
+        )
 };
 
 
@@ -318,19 +430,26 @@ export const serviceAPI = {
 export const subscriptionAPI = {
 
     getPlans: () =>
-        api.get('/subscriptions/plans'),
+        api.get(
+            '/subscriptions/plans'
+        ),
 
     getCurrentSubscription: () =>
-        api.get('/subscriptions/current'),
+        api.get(
+            '/subscriptions/current'
+        ),
 
     getStatus: () =>
-        api.get('/subscriptions/status'),
+        api.get(
+            '/subscriptions/status'
+        ),
 
     subscribe: (planId) =>
         api.post(
             '/subscriptions/subscribe',
             {
-                plan_id: Number(planId)
+                plan_id:
+                    Number(planId)
             }
         )
 };

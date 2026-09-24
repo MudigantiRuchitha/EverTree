@@ -55,6 +55,24 @@ export default function PropertyPage({ onOpenChat }) {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const [inCart, setInCart] = useState(false);
+  const getMediaUrl = (fileUrl) => {
+    if (!fileUrl) {
+        return '';
+    }
+
+    if (
+        fileUrl.startsWith('http://') ||
+        fileUrl.startsWith('https://')
+    ) {
+        return fileUrl;
+    }
+
+    return `http://localhost:5000${
+        fileUrl.startsWith('/')
+            ? fileUrl
+            : `/${fileUrl}`
+    }`;
+};
 
   // ---------------------------------------------------------
   // LOAD PROPERTY FROM DATABASE
@@ -689,93 +707,187 @@ export default function PropertyPage({ onOpenChat }) {
             space-y-6
           "
         >
+{/* ========================================================= */}
+{/* PROPERTY IMAGE GALLERY */}
+{/* ========================================================= */}
 
-          {/* ================================================= */}
-          {/* PROPERTY IMAGE */}
-          {/* ================================================= */}
+<div className="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
 
-          <div
-            className="
-              bg-slate-900
-              rounded-3xl
-              overflow-hidden
-              shadow-md
-              border
-              border-slate-200
-            "
-          >
+    {finalMediaList.length > 0 ? (
 
-            <div
-              className="
-                h-64
-                sm:h-96
-                md:h-[460px]
-                w-full
+        <div className="flex flex-col lg:flex-row gap-4">
+
+            {/* THUMBNAILS */}
+
+            <div className="
+                order-2
+                lg:order-1
                 flex
-                items-center
-                justify-center
-                bg-black
-              "
-            >
+                lg:flex-col
+                gap-3
+                overflow-x-auto
+                lg:overflow-y-auto
+                lg:w-24
+                lg:max-h-[520px]
+                pb-2
+            ">
 
-              {activeMedia ? (
+                {finalMediaList.map((media, index) => (
 
-                activeMedia.media_type ===
-                'video' ? (
+                    <button
+                        key={
+                            media.id ||
+                            `${media.file_url}-${index}`
+                        }
+                        type="button"
+                        onClick={() =>
+                            setSelectedMediaIdx(index)
+                        }
+                        className={`
+                            relative
+                            flex-shrink-0
+                            w-20
+                            h-20
+                            rounded-xl
+                            overflow-hidden
+                            bg-slate-100
+                            border-2
+                            transition-all
+                            ${
+                                selectedMediaIdx === index
+                                    ? 'border-emerald-600 ring-2 ring-emerald-100'
+                                    : 'border-slate-200 hover:border-slate-400'
+                            }
+                        `}
+                    >
 
-                  <video
-                    src={
-                      activeMedia.file_url
-                    }
-                    controls
-                    className="
-                      w-full
-                      h-full
-                      object-contain
-                    "
-                  />
+                        {media.media_type === 'video' ? (
 
-                ) : (
+                            <video
+                                src={getMediaUrl(
+                                    media.file_url
+                                )}
+                                className="
+                                    w-full
+                                    h-full
+                                    object-cover
+                                "
+                            />
 
-                  <img
-                    src={
-                      activeMedia.file_url
-                    }
-                    alt={
-                      property.title ||
-                      'Property'
-                    }
-                    className="
-                      w-full
-                      h-full
-                      object-cover
-                    "
-                  />
+                        ) : (
 
-                )
+                            <img
+                                src={getMediaUrl(
+                                    media.file_url
+                                )}
+                                alt={`Property image ${index + 1}`}
+                                className="
+                                    w-full
+                                    h-full
+                                    object-cover
+                                "
+                            />
 
-              ) : (
+                        )}
 
-                <div
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    w-full
-                    h-full
-                    text-slate-400
-                    text-sm
-                  "
-                >
-                  No property image available
-                </div>
+                        {selectedMediaIdx === index && (
+                            <div className="
+                                absolute
+                                inset-0
+                                ring-2
+                                ring-inset
+                                ring-emerald-600
+                                pointer-events-none
+                            " />
+                        )}
 
-              )}
+                    </button>
+
+                ))}
 
             </div>
 
-          </div>
 
+            {/* MAIN IMAGE */}
+
+            <div className="
+                order-1
+                lg:order-2
+                flex-1
+                min-h-[380px]
+                lg:min-h-[520px]
+                rounded-2xl
+                overflow-hidden
+                bg-slate-100
+                flex
+                items-center
+                justify-center
+            ">
+
+                {activeMedia?.media_type === 'video' ? (
+
+                    <video
+                        src={getMediaUrl(
+                            activeMedia.file_url
+                        )}
+                        controls
+                        className="
+                            w-full
+                            h-full
+                            max-h-[520px]
+                            object-contain
+                        "
+                    />
+
+                ) : activeMedia ? (
+
+                    <img
+                        src={getMediaUrl(
+                            activeMedia.file_url
+                        )}
+                        alt={
+                            property.title ||
+                            'Property'
+                        }
+                        className="
+                            w-full
+                            h-full
+                            max-h-[520px]
+                            object-contain
+                        "
+                    />
+
+                ) : (
+
+                    <div className="
+                        text-slate-400
+                        text-sm
+                    ">
+                        No property image available
+                    </div>
+
+                )}
+
+            </div>
+
+        </div>
+
+    ) : (
+
+        <div className="
+            min-h-[520px]
+            flex
+            items-center
+            justify-center
+            text-slate-400
+            text-sm
+        ">
+            No property images available
+        </div>
+
+    )}
+
+</div>
 
           {/* ================================================= */}
           {/* CART + WISHLIST */}
@@ -923,113 +1035,7 @@ export default function PropertyPage({ onOpenChat }) {
           </div>
 
 
-          {/* ================================================= */}
-          {/* THUMBNAILS */}
-          {/* ================================================= */}
 
-          {finalMediaList.length > 1 && (
-            <div
-              className="
-                flex
-                gap-3
-                overflow-x-auto
-                pb-2
-                scrollbar-none
-              "
-            >
-
-              {finalMediaList.map(
-                (media, index) => (
-
-                  <button
-                    key={
-                      media.id ||
-                      media.file_url ||
-                      index
-                    }
-                    type="button"
-                    onClick={() =>
-                      setSelectedMediaIdx(
-                        index
-                      )
-                    }
-                    className={
-                      selectedMediaIdx ===
-                      index
-                        ? `
-                          w-20
-                          h-16
-                          sm:w-24
-                          sm:h-18
-                          rounded-xl
-                          overflow-hidden
-                          shrink-0
-                          transition-all
-                          cursor-pointer
-                          ring-3
-                          ring-emerald-500
-                          opacity-100
-                          scale-105
-                        `
-                        : `
-                          w-20
-                          h-16
-                          sm:w-24
-                          sm:h-18
-                          rounded-xl
-                          overflow-hidden
-                          shrink-0
-                          transition-all
-                          cursor-pointer
-                          opacity-60
-                          hover:opacity-100
-                          border
-                          border-slate-200
-                        `
-                    }
-                  >
-
-                    {media.media_type ===
-                    'video' ? (
-
-                      <video
-                        src={
-                          media.file_url
-                        }
-                        className="
-                          w-full
-                          h-full
-                          object-cover
-                        "
-                        muted
-                      />
-
-                    ) : (
-
-                      <img
-                        src={
-                          media.file_url
-                        }
-                        alt={
-                          property.title ||
-                          'Property image'
-                        }
-                        className="
-                          w-full
-                          h-full
-                          object-cover
-                        "
-                      />
-
-                    )}
-
-                  </button>
-
-                )
-              )}
-
-            </div>
-          )}
 
 
           {/* ================================================= */}

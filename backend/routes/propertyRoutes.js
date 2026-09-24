@@ -44,6 +44,7 @@ const upload =
 // Logged-in buyer:
 //   also returns is_favorite for each property
 //
+
 router.get(
     '/',
     optionalVerifyToken,
@@ -56,6 +57,7 @@ router.get(
 // =====================================================
 
 // Seller / Broker's own properties
+
 router.get(
     '/my-listings',
     verifyToken,
@@ -65,6 +67,7 @@ router.get(
 
 
 // Logged-in user's wishlist
+
 router.get(
     '/favorites',
     verifyToken,
@@ -73,20 +76,11 @@ router.get(
 
 
 // Logged-in user's enquiries
+
 router.get(
     '/enquiries',
     verifyToken,
     propertyController.getEnquiries
-);
-
-
-// =====================================================
-// SINGLE PROPERTY
-// =====================================================
-
-router.get(
-    '/:id',
-    propertyController.getPropertyById
 );
 
 
@@ -122,6 +116,30 @@ router.post(
     '/enquiry',
     verifyToken,
     propertyController.createEnquiry
+);
+
+
+// =====================================================
+// DELETE PROPERTY
+// =====================================================
+
+// Seller / Broker can delete their own property
+
+router.delete(
+    '/:id',
+    verifyToken,
+    requireRole('seller', 'broker'),
+    propertyController.deleteProperty
+);
+
+
+// =====================================================
+// SINGLE PROPERTY
+// =====================================================
+
+router.get(
+    '/:id',
+    propertyController.getPropertyById
 );
 
 

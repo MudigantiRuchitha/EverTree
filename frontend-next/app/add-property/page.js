@@ -2341,7 +2341,6 @@ export default function AddPropertyPage() {
 
                             </label>
 
-
                             <input
                                 type="file"
                                 multiple
@@ -2362,31 +2361,48 @@ export default function AddPropertyPage() {
                                     hover:file:bg-emerald-100
                                     cursor-pointer
                                 "
-                                onChange={(e) =>
-                                    setPhotosVideos(
-                                        Array.from(
-                                            e.target.files
-                                        )
-                                    )
-                                }
+                                onChange={(e) => {
+                                    const newFiles = Array.from(e.target.files);
+                                    setPhotosVideos(prev => [...prev, ...newFiles]);
+                                    // Reset input so the same files can be selected again if removed
+                                    e.target.value = '';
+                                }}
                             />
 
-
+                            {/* PREVIEW GALLERY */}
                             {photosVideos.length > 0 && (
-
-                                <p
-                                    className="
-                                        text-xs
-                                        text-emerald-600
-                                        font-semibold
-                                        mt-2
-                                    "
-                                >
-                                    ✓ {photosVideos.length}
-                                    {' '}
-                                    files selected
-                                </p>
-
+                                <div className="mt-4">
+                                    <p className="text-xs text-emerald-600 font-semibold mb-3">
+                                        ✓ {photosVideos.length} files selected
+                                    </p>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                        {photosVideos.map((file, idx) => (
+                                            <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-white aspect-square">
+                                                {file.type.startsWith('video/') ? (
+                                                    <video
+                                                        src={URL.createObjectURL(file)}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={URL.createObjectURL(file)}
+                                                        alt="preview"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setPhotosVideos(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
+                                                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
 
                         </div>
