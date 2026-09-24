@@ -25,6 +25,7 @@ export const authAPI = {
     register: (userData) => api.post('/auth/register', userData),
     login: (credentials) => api.post('/auth/login', credentials),
     getProfile: () => api.get('/auth/profile'),
+    changePassword: (data) => api.post('/auth/change-password', data),
     getPendingVerifications: () => api.get('/auth/pending-verifications'),
     approveUser: (user_id) => api.post('/auth/approve-user', { user_id })
 };
@@ -45,6 +46,9 @@ export const propertyAPI = {
 export const chatAPI = {
     getConversations: () => api.get('/chat/conversations'),
     getMessages: (partnerId) => api.get(`/chat/messages/${partnerId}`),
+    getAdminConversations: () => api.get('/chat/admin/conversations'),
+    sendMessage: (data) => api.post('/chat/messages', data),
+    
     uploadChatFile: (formData) => api.post('/chat/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     })
@@ -53,6 +57,29 @@ export const chatAPI = {
 export const serviceAPI = {
     submitLead: (leadData) => api.post('/services/lead', leadData),
     calculateEmi: (data) => api.post('/services/emi-calculator', data)
+};
+
+export const adminAPI = {
+    getOverview: () => api.get('/admin/overview'),
+
+    getUsers: () => api.get('/admin/users'),
+
+    getPendingUsers: () => api.get('/admin/users/pending'),
+
+    approveUser: (id) =>
+        api.patch(`/admin/users/${id}/approve`),
+
+    rejectUser: (id, remarks) =>
+        api.patch(`/admin/users/${id}/reject`, { remarks }),
+
+    getProperties: () =>
+        api.get('/admin/properties'),
+
+    updatePropertyStatus: (id, status, remarks) =>
+        api.patch(`/admin/properties/${id}/status`, {
+            status,
+            remarks
+        })
 };
 
 export default api;

@@ -71,6 +71,7 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
     try {
         const { email, emailOtp } = req.body;
+
         if (!email || !emailOtp) {
             return res.status(400).json({
                 error: 'Email and email OTP are required.'
@@ -78,13 +79,14 @@ exports.verifyOtp = async (req, res) => {
         }
 
         const key = email.trim().toLowerCase();
+        const enteredOtp = String(emailOtp).trim();
+
         const record = otpStore.get(key);
 
         console.log("========== OTP VERIFY ==========");
         console.log("Email:", key);
-        console.log("Entered OTP:", emailOtp);
-        console.log("Record:", record);
-        console.log("Store size:", otpStore.size);
+        console.log("Entered OTP:", enteredOtp);
+        console.log("Record exists:", !!record);
         console.log("================================");
 
         if (!record) {
@@ -102,9 +104,9 @@ exports.verifyOtp = async (req, res) => {
             });
         }
 
-        // Check OTP
+        // Check the actual OTP only
         const isEmailMatch =
-            record.emailOtp === emailOtp || emailOtp === '1234';
+            String(record.emailOtp).trim() === enteredOtp;
 
         if (!isEmailMatch) {
             return res.status(400).json({
@@ -112,7 +114,7 @@ exports.verifyOtp = async (req, res) => {
             });
         }
 
-        // OTP is correct
+        // OTP is correct — remove it so it cannot be reused
         otpStore.delete(key);
 
         return res.json({
@@ -238,50 +240,74 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
+
         if (!identifier || !password) {
-            return res.status(400).json({ error: 'Contact Number / Email / Verification ID and Password are required.' });
+            return res.status(400).json({
+                error: 'Contact Number / Email / Verification ID and Password are required.'
+            });
         }
 
-        if (isPgConnected()) {
-            const result = await query(
-                'SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR phone = $1 OR UPPER(verification_id) = UPPER($1)',
-                [identifier]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(400).json({ error: 'Invalid credentials or Verification ID.' });
-            }
-
-            const user = result.rows[0];
-            const isMatch = await bcrypt.compare(password, user.password_hash);
-            if (!isMatch) {
-                return res.status(400).json({ error: 'Invalid credentials or Password.' });
-            }
-
-            const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
-            delete user.password_hash;
-
-            return res.json({ message: 'Login successful', token, user });
-        } else {
-            const user = fallbackData.users.find(u => 
-                u.email.toLowerCase() === identifier.toLowerCase() || 
-                u.phone === identifier || 
-                (u.verification_id && u.verification_id.toUpperCase() === identifier.toUpperCase())
-            );
-
-            if (!user) {
-                return res.status(400).json({ error: 'Invalid credentials or Verification ID. Demo logins: EVT-BRK-89241 or EVT-SEL-47120' });
-            }
-
-            const isMatch = await bcrypt.compare(password, user.password_hash) || password === 'password123' || true;
-            const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.name, verification_id: user.verification_id }, JWT_SECRET, { expiresIn: '7d' });
-            const { password_hash, ...userWithoutPass } = user;
-
-            return res.json({ message: 'Login successful', token, user: userWithoutPass });
+        // Authentication must use the real PostgreSQL database
+        if (!isPgConnected()) {
+            return res.status(503).json({
+                error: 'Database is currently unavailable. Please try again later.'
+            });
         }
+
+        const result = await query(
+            `SELECT *
+             FROM users
+             WHERE LOWER(email) = LOWER($1)
+                OR phone = $1
+                OR UPPER(verification_id) = UPPER($1)`,
+            [identifier]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid credentials or Verification ID.'
+            });
+        }
+
+        const user = result.rows[0];
+
+        const isMatch = await bcrypt.compare(
+            password,
+            user.password_hash
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({
+                error: 'Invalid credentials or Password.'
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                name: user.name,
+                verification_id: user.verification_id
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        delete user.password_hash;
+
+        return res.json({
+            message: 'Login successful',
+            token,
+            user
+        });
+
     } catch (err) {
         console.error('Login error:', err);
-        res.status(500).json({ error: 'Server error during login.' });
+
+        return res.status(500).json({
+            error: 'Server error during login.'
+        });
     }
 };
 
@@ -332,5 +358,86 @@ exports.approveUser = async (req, res) => {
         }
     } catch (err) {
         res.status(500).json({ error: 'Error approving user.' });
+    }
+};
+//change Password
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                error: "Current password and new password are required."
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                error: "New password must be at least 8 characters long."
+            });
+        }
+
+        if (!isPgConnected()) {
+            return res.status(503).json({
+                error: "Database is not connected."
+            });
+        }
+
+        const result = await query(
+            `SELECT id, password_hash
+             FROM users
+             WHERE id = $1`,
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "User not found."
+            });
+        }
+
+        const user = result.rows[0];
+
+        const isCurrentPasswordCorrect = await bcrypt.compare(
+            currentPassword,
+            user.password_hash
+        );
+
+        if (!isCurrentPasswordCorrect) {
+            return res.status(400).json({
+                error: "Current password is incorrect."
+            });
+        }
+
+        const isSamePassword = await bcrypt.compare(
+            newPassword,
+            user.password_hash
+        );
+
+        if (isSamePassword) {
+            return res.status(400).json({
+                error: "New password must be different from the current password."
+            });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+        await query(
+            `UPDATE users
+             SET password_hash = $1
+             WHERE id = $2`,
+            [newPasswordHash, req.user.id]
+        );
+
+        return res.json({
+            message: "Password changed successfully."
+        });
+
+    } catch (err) {
+        console.error("Change password error:", err);
+
+        return res.status(500).json({
+            error: "Failed to change password."
+        });
     }
 };

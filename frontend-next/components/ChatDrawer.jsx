@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Paperclip, Mic, Check, CheckCheck, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { chatAPI } from '../services/api';
+import { chatAPI,adminAPI } from '../services/api';
 
 const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     const { user } = useAuth();
     const { socket, onlineUsers } = useSocket();
 
     const [conversations, setConversations] = useState([]);
+    const [availableUsers, setAvailableUsers] = useState([]);
     const [activePartner, setActivePartner] = useState(targetPartner || null);
     const [messages, setMessages] = useState([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -74,16 +75,36 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
     }, [messages]);
 
     const loadConversations = async () => {
-        try {
-            const res = await chatAPI.getConversations();
-            setConversations(res.data.conversations || []);
-            if (!activePartner && res.data.conversations?.length > 0) {
-                setActivePartner(res.data.conversations[0]);
-            }
-        } catch (err) {
-            console.error('Error loading conversations:', err);
+    try {
+        const res = await chatAPI.getConversations();
+
+        const conversationData = Array.isArray(res.data)
+            ? res.data
+            : (res.data.conversations || []);
+
+        setConversations(conversationData);
+
+        if (!activePartner && conversationData.length > 0) {
+            setActivePartner(conversationData[0]);
         }
-    };
+
+        // Admin can start a new chat with any real registered user
+        if (user?.role === 'admin') {
+            const usersRes = await adminAPI.getUsers();
+
+            const usersData = Array.isArray(usersRes.data)
+                ? usersRes.data
+                : (usersRes.data.users || []);
+
+            setAvailableUsers(
+                usersData.filter(existingUser => existingUser.id !== user.id)
+            );
+        }
+
+    } catch (err) {
+        console.error('Error loading conversations:', err);
+    }
+};
 
     const loadMessages = async (partnerId) => {
         try {
@@ -97,40 +118,30 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
         }
     };
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
-        if ((!inputMessage.trim() && !mediaFile) || !activePartner || !user) return;
+const handleSendMessage = async (e) => {
+    e.preventDefault();
 
-        let mediaUrl = null;
-        let mediaType = 'text';
+    if (!inputMessage.trim() || !activePartner || !user) return;
 
-        if (mediaFile) {
-            try {
-                const formData = new FormData();
-                formData.append('file', mediaFile);
-                const uploadRes = await chatAPI.uploadMedia(formData);
-                mediaUrl = uploadRes.data.url;
-                mediaType = mediaFile.type.startsWith('image/') ? 'image' : 'voice';
-            } catch (err) {
-                console.error('Media upload failed:', err);
-            }
-        }
+    try {
+        const receiverId = activePartner.partner_id || activePartner.id;
 
-        const payload = {
-            sender_id: user.id,
-            receiver_id: activePartner.partner_id || activePartner.id,
-            message: inputMessage,
-            media_url: mediaUrl,
-            media_type: mediaType
-        };
+        const response = await chatAPI.sendMessage({
+            receiver_id: receiverId,
+            message: inputMessage.trim()
+        });
 
-        if (socket) {
-            socket.emit('send_message', payload);
-        }
+        setMessages(prev => [...prev, response.data]);
 
         setInputMessage('');
-        setMediaFile(null);
-    };
+
+        loadConversations();
+
+    } catch (err) {
+        console.error('Error sending message:', err);
+        alert(err.response?.data?.error || 'Failed to send message.');
+    }
+};
 
     const handleSendVoiceNote = () => {
         setIsRecordingVoice(true);
@@ -209,6 +220,44 @@ const ChatDrawer = ({ isOpen, onClose, targetPartner }) => {
                     ))}
                 </div>
             )}
+
+            {/* Start New Chat - Admin */}
+{user?.role === 'admin' && !activePartner && availableUsers.length > 0 && (
+    <div className="px-3 py-3 bg-white border-b border-slate-200 shrink-0">
+        <div className="text-xs font-bold text-slate-700 mb-2">
+            Start a new conversation
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto">
+            {availableUsers.map((availableUser) => (
+                <button
+                    key={availableUser.id}
+                    type="button"
+                    onClick={() => setActivePartner(availableUser)}
+                    className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl whitespace-nowrap transition-colors cursor-pointer"
+                >
+                    <img
+                        src={
+                            availableUser.avatar_url ||
+                            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde'
+                        }
+                        alt={availableUser.name}
+                        className="w-7 h-7 rounded-full object-cover"
+                    />
+
+                    <div className="text-left">
+                        <div className="text-xs font-bold text-slate-900">
+                            {availableUser.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 capitalize">
+                            {availableUser.role}
+                        </div>
+                    </div>
+                </button>
+            ))}
+        </div>
+    </div>
+)}
 
             {/* Messages Thread */}
             <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-2.5 bg-slate-50/80">

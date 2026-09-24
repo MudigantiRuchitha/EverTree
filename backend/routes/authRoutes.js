@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 router.post('/send-otp', authController.sendOtp);
 router.post('/verify-otp', authController.verifyOtp);
@@ -10,7 +10,24 @@ router.post('/login', authController.login);
 router.get('/profile', verifyToken, authController.getProfile);
 
 // Admin Legal Verification routes
-router.get('/pending-verifications', authController.getPendingVerifications);
-router.post('/approve-user', authController.approveUser);
+router.post(
+  '/change-password',
+  verifyToken,
+  authController.changePassword
+); 
+
+router.get(
+  '/pending-verifications',
+  verifyToken,
+  requireRole('admin'),
+  authController.getPendingVerifications
+);
+
+router.post(
+  '/approve-user',
+  verifyToken,
+  requireRole('admin'),
+  authController.approveUser
+);
 
 module.exports = router;

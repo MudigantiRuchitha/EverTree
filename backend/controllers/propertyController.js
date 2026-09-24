@@ -213,16 +213,44 @@ exports.createProperty = async (req, res) => {
 
             // Insert media
             for (const item of mediaItems) {
-                await query('INSERT INTO property_media (property_id, file_url, media_type) VALUES ($1, $2, $3)', [newProperty.id, item.file_url, item.media_type]);
+                await query('INSERT INTO property_media (property_id, media_url, media_type) VALUES ($1, $2, $3)', [newProperty.id, item.file_url, item.media_type]);
             }
-            // Insert docs
-            for (const item of docItems) {
-                await query('INSERT INTO property_docs (property_id, file_url, title) VALUES ($1, $2, $3)', [newProperty.id, item.file_url, item.title]);
-            }
-            // Insert amenities
-            for (const amenity of parsedAmenities) {
-                await query('INSERT INTO property_amenities (property_id, amenity_name) VALUES ($1, $2)', [newProperty.id, amenity]);
-            }
+            // Insert documents
+for (const item of docItems) {
+    await query(
+        `INSERT INTO property_documents
+        (property_id, document_type, document_url, original_filename)
+        VALUES ($1, $2, $3, $4)`,
+        [
+            newProperty.id,
+            'property_document',
+            item.file_url,
+            item.title
+        ]
+    );
+}
+
+// Insert amenities
+for (const amenity of parsedAmenities) {
+    const amenityName = String(amenity).trim();
+
+    const amenityResult = await query(
+        `SELECT id
+         FROM amenities
+         WHERE LOWER(name) = LOWER($1)
+         LIMIT 1`,
+        [amenityName]
+    );
+
+    if (amenityResult.rows.length > 0) {
+        await query(
+            `INSERT INTO property_amenities
+            (property_id, amenity_id)
+            VALUES ($1, $2)`,
+            [newProperty.id, amenityResult.rows[0].id]
+        );
+    }
+}
 
             return res.status(201).json({ message: 'Property created successfully', property: newProperty });
         } else {

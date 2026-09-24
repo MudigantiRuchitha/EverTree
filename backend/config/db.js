@@ -66,6 +66,8 @@ async function tryConnectPg() {
             client.release();
             return true;
         } catch (err) {
+            console.log(`❌ PostgreSQL connection attempt failed: ${err.message}`);
+
             // Continue testing next candidate password
         }
     }

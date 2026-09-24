@@ -19,7 +19,6 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('buyer');
-
     const [loginIdentifier, setLoginIdentifier] = useState('');
 
     //  OTP inputs
