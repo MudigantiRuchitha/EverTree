@@ -260,6 +260,48 @@ async function tryConnectPg() {
                 )
             `);
 
+            // Migrate Advertisements Table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS advertisements (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    image_url TEXT,
+                    target_url TEXT,
+                    position VARCHAR(50),
+                    start_date TIMESTAMP,
+                    end_date TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Migrate legacy ads Table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS ads (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    image_url VARCHAR(255),
+                    cta_text VARCHAR(100),
+                    bg_gradient VARCHAR(100),
+                    slot_index INT UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Seed 5 default ads if none exist in advertisements
+            const advCount = await client.query('SELECT COUNT(*) FROM advertisements');
+            if (parseInt(advCount.rows[0].count) === 0) {
+                await client.query(`
+                    INSERT INTO advertisements (title, description, image_url, target_url, position) VALUES
+                    ('Lowest Home Loan Interest Rates', 'Special interest rates starting at 8.35% p.a. for all verified properties.', 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80', '/loan', '1'),
+                    ('Premium Interior Design Solutions', 'Transform your newly purchased home with top-tier interior decorators.', 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80', '/interior', '2'),
+                    ('Luxury Villas & Estates', 'Experience resort-style luxury living with private pools and lush green views.', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80', '/search?type=villa', '3'),
+                    ('Reliable Packers & Movers Partner', 'Save up to 40% on seamless relocation and packing services across India.', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80', '/services', '4'),
+                    ('Expert Legal Verification & Title Checks', 'Get property ownership documents verified by certified real estate lawyers.', 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80', '/legal', '5')
+                `);
+            }
+
             console.log(
                 'PostgreSQL column migrations verified.'
             );

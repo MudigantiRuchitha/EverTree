@@ -20,6 +20,7 @@ const adminRoutes = require('./routes/adminRoutes');
 
 // ✅ NEW: Subscription routes
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const adRoutes = require('./routes/adRoutes');
 
 
 const app = express();
@@ -44,6 +45,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Mount API routes
 app.use('/api/auth', authRoutes);
@@ -51,6 +54,8 @@ app.use('/api/properties', propertyRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/ads', adRoutes);
 
 app.get('/api/health', (req, res) => {
 

@@ -213,6 +213,10 @@ import {
 import { propertyAPI, serviceAPI } from "../../services/api";
 import PropertyCard from "../../components/PropertyCard";
 import { useAuth } from "../../context/AuthContext";
+import AnimatedAdsBanner from "../../components/AnimatedAdsBanner";
+import TopAdTicker from "../../components/TopAdTicker";
+import InGridAdCard from "../../components/InGridAdCard";
+import SpotlightAdCard from "../../components/SpotlightAdCard";
 
 export default function BuyerDashboardPage({ onOpenChat }) {
     const { user, loading: authLoading } = useAuth();
@@ -425,6 +429,7 @@ export default function BuyerDashboardPage({ onOpenChat }) {
 
     return (
         <main className="w-full">
+            <TopAdTicker />
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-5 lg:px-8 py-5 sm:py-8 lg:py-12 space-y-6 sm:space-y-8">
 
                 {/* =========================================
@@ -586,6 +591,11 @@ export default function BuyerDashboardPage({ onOpenChat }) {
                     </div>
                 </section>
 
+                {/* Animated Featured Partner Spotlight */}
+                <div className="my-8">
+                    <SpotlightAdCard />
+                </div>
+
                 {/* =========================================
                     SAVED PROPERTIES HEADER
                 ========================================= */}
@@ -669,6 +679,8 @@ export default function BuyerDashboardPage({ onOpenChat }) {
                                     }
                                 />
                             ))}
+                            {/* In-Grid Sponsored Partner Ad Card */}
+                            <InGridAdCard slotIndex={1} />
                         </div>
                     )}
                 </section>
@@ -755,6 +767,11 @@ export default function BuyerDashboardPage({ onOpenChat }) {
                         </div>
                     )}
                 </section>
+
+                {/* Bottom Place: Animated Showcase Banner */}
+                <div className="mt-8">
+                    <AnimatedAdsBanner variant="dashboard" />
+                </div>
                 
                 {/* =========================================
                     BROKER MODAL

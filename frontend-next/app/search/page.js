@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { propertyAPI } from '../../services/api';
 import PropertyCard from '../../components/PropertyCard';
+import TopAdTicker from '../../components/TopAdTicker';
+import InGridAdCard from '../../components/InGridAdCard';
 
 function SearchPageContent({ onOpenChat }) {
     const router = useRouter();
@@ -180,8 +182,11 @@ function SearchPageContent({ onOpenChat }) {
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-20">
+            {/* Top Live Deals Ticker */}
+            <TopAdTicker />
+
             {/* Header / Search Controls Bar */}
-            <div className="bg-white border-b border-slate-200 sticky top-16 sm:top-20 z-30 shadow-xs backdrop-blur-md bg-white/95">
+            <div className="bg-white border-b border-slate-200 shadow-xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     
                     {/* Top Row: Title & Quick Category Pills */}
@@ -468,7 +473,15 @@ function SearchPageContent({ onOpenChat }) {
                     </div>
                 ) : properties.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-                        {properties.map((property) => (
+                        {properties.slice(0, 3).map((property) => (
+                            <PropertyCard
+                                key={property.id}
+                                property={property}
+                                onOpenChat={onOpenChat}
+                            />
+                        ))}
+                        <InGridAdCard slotIndex={1} />
+                        {properties.slice(3).map((property) => (
                             <PropertyCard
                                 key={property.id}
                                 property={property}

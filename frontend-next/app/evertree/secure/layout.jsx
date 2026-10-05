@@ -38,6 +38,11 @@ export default function AdminLayout({ children }) {
       icon: "▱",
     },
     {
+      name: "Ads Manager",
+      path: "/evertree/secure/ads",
+      icon: "📢",
+    },
+    {
       name: "Settings",
       path: "/evertree/secure/settings",
       icon: "⚙",

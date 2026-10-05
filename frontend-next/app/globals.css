@@ -35,6 +35,10 @@
     --text-dim: #94a3b8;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -85,3 +89,79 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #e11d48;
 }
+
+/* ========================================================
+   ANIMATED ADS & SHOWCASE EFFECTS
+   ======================================================== */
+@keyframes adProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+@keyframes adShimmer {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+@keyframes adGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.2), 0 0 50px rgba(245, 158, 11, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(16, 185, 129, 0.4), 0 0 90px rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.55);
+  }
+}
+
+@keyframes adFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes adFadeScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-ad-progress {
+  animation: adProgress linear forwards;
+}
+
+.animate-ad-shimmer {
+  animation: adShimmer 3.5s infinite;
+}
+
+.animate-ad-glow {
+  animation: adGlowPulse 4s ease-in-out infinite;
+}
+
+.animate-ad-float {
+  animation: adFloat 5s ease-in-out infinite;
+}
+
+.animate-marquee-scroll {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 30s linear infinite;
+}
+
+.animate-marquee-scroll:hover {
+  animation-play-state: paused;
+}
+
+.animate-ad-entrance {
+  animation: adFadeScale 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

@@ -445,9 +445,13 @@ import { propertyAPI, serviceAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import PropertyCard from '../../components/PropertyCard';
+import AnimatedAdsBanner from '../../components/AnimatedAdsBanner';
+import TopAdTicker from '../../components/TopAdTicker';
+import InGridAdCard from '../../components/InGridAdCard';
+import SpotlightAdCard from '../../components/SpotlightAdCard';
 
 export default function SellerDashboard() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { socket } = useSocket();
 
     const [myListings, setMyListings] = useState([]);
@@ -604,24 +608,21 @@ export default function SellerDashboard() {
     // =====================================================
 
     const loadSellerData = async () => {
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
 
         try {
-            const isSellerOrBroker =
-                user?.role === 'seller' ||
-                user?.role === 'broker';
-
             const [
                 listingsRes,
                 enquiriesRes
             ] = await Promise.all([
-                isSellerOrBroker
-                    ? propertyAPI
-                        .getMyListings()
-                        .catch(() => ({ data: [] }))
-                    : Promise.resolve({ data: [] }),
+                propertyAPI
+                    .getMyListings()
+                    .catch(() => ({ data: [] })),
 
                 propertyAPI
                     .getEnquiries()
@@ -629,13 +630,13 @@ export default function SellerDashboard() {
             ]);
 
             setMyListings(
-                Array.isArray(listingsRes.data)
+                Array.isArray(listingsRes?.data)
                     ? listingsRes.data
                     : []
             );
 
             setEnquiries(
-                Array.isArray(enquiriesRes.data)
+                Array.isArray(enquiriesRes?.data)
                     ? enquiriesRes.data
                     : []
             );
@@ -656,8 +657,12 @@ export default function SellerDashboard() {
     // =====================================================
 
     useEffect(() => {
-        loadSellerData();
-    }, [user]);
+        if (user) {
+            loadSellerData();
+        } else if (!authLoading) {
+            setLoading(false);
+        }
+    }, [user, authLoading]);
 
     // =====================================================
     // DELETE PROPERTY
@@ -728,6 +733,43 @@ export default function SellerDashboard() {
     // UI
     // =====================================================
 
+    if (authLoading) {
+        return (
+            <main className="min-h-[60vh] flex items-center justify-center px-4">
+                <div className="text-center">
+                    <div className="w-9 h-9 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-sm text-slate-500">Loading your account...</p>
+                </div>
+            </main>
+        );
+    }
+
+    if (!user) {
+        return (
+            <main className="min-h-[60vh] flex items-center justify-center px-4 py-12">
+                <div className="w-full max-w-lg">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm text-center">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-5">
+                            <Building2 className="w-7 h-7" />
+                        </div>
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+                            Sign in to view your Seller Dashboard
+                        </h1>
+                        <p className="mt-2 text-sm text-slate-500 leading-6">
+                            Your active property listings, buyer enquiries, and sales analytics are available after you sign in.
+                        </p>
+                        <Link
+                            href="/"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 mt-6 px-6 py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20"
+                        >
+                            Return to Home / Sign In
+                        </Link>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <main className="min-h-screen bg-slate-50">
 
@@ -736,7 +778,7 @@ export default function SellerDashboard() {
             ================================================= */}
 
             <section className="bg-white border-b border-slate-200">
-
+                <TopAdTicker />
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
                     <div>
@@ -1076,6 +1118,10 @@ export default function SellerDashboard() {
 
                 </div>
 
+                {/* Animated Featured Partner Spotlight */}
+                <div className="my-8">
+                    <SpotlightAdCard />
+                </div>
 
                 {/* =================================================
                     MY LISTINGS
@@ -1116,26 +1162,24 @@ export default function SellerDashboard() {
 
                     ) : myListings.length === 0 ? (
 
-                        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-lg mx-auto shadow-xs">
-
-                            <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-
-                            <h3 className="font-bold text-slate-900">
-                                No properties listed yet
-                            </h3>
-
-                            <p className="text-xs text-slate-500 mt-1 mb-4">
-                                Post your first property to connect with buyers.
-                            </p>
-
-                            <Link
-                                href="/add-property"
-                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
-                            >
-                                <PlusCircle className="w-4 h-4" />
-                                Post Property Now
-                            </Link>
-
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs">
+                                <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                <h3 className="font-bold text-slate-900">
+                                    No properties listed yet
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1 mb-4">
+                                    Post your first property to connect with buyers.
+                                </p>
+                                <Link
+                                    href="/add-property"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
+                                >
+                                    <PlusCircle className="w-4 h-4" />
+                                    Post Property Now
+                                </Link>
+                            </div>
+                            <InGridAdCard slotIndex={1} />
                         </div>
 
                     ) : (
@@ -1143,7 +1187,7 @@ export default function SellerDashboard() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
 
                             {myListings
-                                .slice(0, 4)
+                                .slice(0, 3)
                                 .map((property) => (
 
                                     <div
@@ -1177,6 +1221,9 @@ export default function SellerDashboard() {
                                     </div>
 
                                 ))}
+
+                            {/* In-Grid Sponsored Partner Ad Card */}
+                            <InGridAdCard slotIndex={1} />
 
                         </div>
 
@@ -1366,6 +1413,11 @@ export default function SellerDashboard() {
                         </div>
 
                     )}
+
+                    {/* Bottom Partner Privileges Showcase */}
+                    <div className="mt-10">
+                        <AnimatedAdsBanner variant="dashboard" />
+                    </div>
 
                 </div>
 

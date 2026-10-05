@@ -1,15 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
-import { adminAPI } from "../../../services/api";
+import { adminAPI, adAPI } from "../../../services/api";
+import AnimatedAdsBanner from "../../../components/AnimatedAdsBanner";
+import TopAdTicker from "../../../components/TopAdTicker";
+import SpotlightAdCard from "../../../components/SpotlightAdCard";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
   const [overview, setOverview] = useState(null);
+  const [adsCount, setAdsCount] = useState(0);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -26,11 +31,19 @@ export default function AdminDashboardPage() {
         setDashboardLoading(true);
         setError("");
 
-        const response = await adminAPI.getOverview();
+        const [response, adsResponse] = await Promise.allSettled([
+          adminAPI.getOverview(),
+          adAPI.getAds()
+        ]);
 
-        console.log("Admin overview response:", response.data);
+        if (response.status === "fulfilled") {
+          console.log("Admin overview response:", response.value.data);
+          setOverview(response.value.data);
+        }
 
-        setOverview(response.data);
+        if (adsResponse.status === "fulfilled") {
+          setAdsCount(adsResponse.value.data?.length || 0);
+        }
       } catch (err) {
         console.error("Failed to load admin overview:", err);
 
@@ -88,6 +101,11 @@ export default function AdminDashboardPage() {
           <p className="mt-2 text-slate-400">
             Welcome, {user.name}
           </p>
+        </div>
+
+        {/* Top Animated Deal Ticker */}
+        <div className="mb-8">
+          <TopAdTicker className="rounded-2xl border border-slate-800" />
         </div>
 
         {/* Error */}
@@ -162,10 +180,30 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
+              {/* Advertisements */}
+              <Link href="/evertree/secure/ads" className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg hover:border-emerald-500/50 hover:bg-slate-900/80 transition-all block group">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-slate-400">
+                    Active Ads
+                  </p>
+                  <span className="text-xs text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center">
+                    Manage &rarr;
+                  </span>
+                </div>
+
+                <p className="mt-3 text-4xl font-bold text-white">
+                  {adsCount}
+                </p>
+
+                <p className="mt-2 text-xs text-emerald-400">
+                  Reflected on Dashboard
+                </p>
+              </Link>
+
             </div>
 
-            {/* User breakdown */}
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* User & Property Breakdown + Spotlight Ad Card (Distributed Placement) */}
+            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
                 <h2 className="text-lg font-semibold text-white">
@@ -251,6 +289,16 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* Col 3: Animated Partner Privilege Spotlight */}
+              <div className="flex flex-col justify-between">
+                <SpotlightAdCard className="h-full" />
+              </div>
+
+            </div>
+
+            {/* Bottom Place: Full Animated Showcase Banner */}
+            <div className="mt-10">
+              <AnimatedAdsBanner variant="dark" showManageLink={true} />
             </div>
           </>
         )}

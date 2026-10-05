@@ -239,9 +239,7 @@ const Navbar = ({ onOpenChat }) => {
         navLinks = brokerNavLinks;
     }
 
-    if (role === 'admin') {
-        navLinks = adminNavLinks;
-    }
+    // Note: Admin links are dedicated to /evertree/secure and should not override public portal navigation
 
 
     // =====================================================
@@ -407,7 +405,7 @@ const Navbar = ({ onOpenChat }) => {
                         <div className="hidden md:flex items-center gap-3">
 
 
-                            {user ? (
+                            {user && role !== 'admin' ? (
 
                                 <>  
                                 {/* =====================================
@@ -416,7 +414,7 @@ const Navbar = ({ onOpenChat }) => {
 
                                     <button
                                         onClick={onOpenChat}
-                                        className="p-2.5 rounded-lg text-emerald-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                        className="p-2.5 rounded-lg text-emerald-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                                         title="Live Chat"
                                     >
                                         <MessageSquare className="w-5 h-5" />
@@ -462,11 +460,12 @@ const Navbar = ({ onOpenChat }) => {
 
 
                                     {/* =====================================
-                                                                              ===================================== */}
+                                        LOGOUT
+                                    ===================================== */}
 
                                     <button
                                         onClick={handleLogout} 
-                                        className="p-2.5 rounded-lg border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                        className="p-2.5 rounded-lg border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                         title="Logout"
                                     >
 
@@ -479,14 +478,14 @@ const Navbar = ({ onOpenChat }) => {
                             ) : (
 
                                 /* =========================================
-                                   PUBLIC USER
+                                   PUBLIC USER / LOGIN & REGISTER
                                 ========================================= */
 
                                 <div className="flex items-center gap-2">
 
                                     <button
                                         onClick={openLogin}
-                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
+                                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all cursor-pointer"
                                     >
 
                                         <User className="w-4 h-4" />
@@ -498,7 +497,7 @@ const Navbar = ({ onOpenChat }) => {
 
                                     <button
                                         onClick={openRegister}
-                                        className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5"
+                                        className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5 cursor-pointer font-bold"
                                     >
 
                                         Register
@@ -607,7 +606,7 @@ const Navbar = ({ onOpenChat }) => {
                         <div className="pt-2 border-t border-slate-100 space-y-2">
 
 
-                            {user ? (
+                            {user && role !== 'admin' ? (
 
                                 <>
 

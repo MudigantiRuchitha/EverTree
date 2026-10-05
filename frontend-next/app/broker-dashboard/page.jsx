@@ -23,6 +23,10 @@ import {
 import { propertyAPI, serviceAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PropertyCard from '../../components/PropertyCard';
+import AnimatedAdsBanner from '../../components/AnimatedAdsBanner';
+import TopAdTicker from '../../components/TopAdTicker';
+import InGridAdCard from '../../components/InGridAdCard';
+import SpotlightAdCard from '../../components/SpotlightAdCard';
 
 export default function BrokerDashboard() {
     const { user } = useAuth();
@@ -91,6 +95,8 @@ export default function BrokerDashboard() {
 
     return (
         <main className="min-h-screen bg-slate-50">
+            {/* Top Live Offer & Ads Ticker */}
+            <TopAdTicker />
 
             {/* ============================== HEADER ============================== */}
             <section
@@ -222,6 +228,11 @@ export default function BrokerDashboard() {
                     </div>
                 </div>
 
+                {/* Spotlight Partner Offer / Ad */}
+                <div className="my-6">
+                    <SpotlightAdCard />
+                </div>
+
                 {/* =================== TAB NAVIGATION (Mobile) =================== */}
                 <div className="flex sm:hidden gap-2 overflow-x-auto pb-1">
                     <button
@@ -287,7 +298,11 @@ export default function BrokerDashboard() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                            {myListings.slice(0, 8).map(property => (
+                            {myListings.slice(0, 3).map(property => (
+                                <PropertyCard key={property.id} property={property} />
+                            ))}
+                            <InGridAdCard slotIndex={1} />
+                            {myListings.slice(3, 7).map(property => (
                                 <PropertyCard key={property.id} property={property} />
                             ))}
                         </div>
@@ -536,6 +551,11 @@ export default function BrokerDashboard() {
                             <span className="text-xs font-bold">Messages</span>
                         </Link>
                     </div>
+                </div>
+
+                {/* Animated Partner Showcase Banner */}
+                <div className="pt-6 pb-2">
+                    <AnimatedAdsBanner variant="dashboard" />
                 </div>
 
             </section>

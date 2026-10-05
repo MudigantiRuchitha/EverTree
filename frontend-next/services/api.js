@@ -403,4 +403,20 @@ export const adminAPI = {
         })
 };
 
+export const subscriptionAPI = {
+    getPlans: () => api.get('/subscriptions/plans')
+};
+
+export const adAPI = {
+    getAds: () => api.get('/ads', { params: { _t: Date.now() } }),
+    createAd: (data) => api.post('/ads', data, {
+        headers: { 'Content-Type': 'application/json' }
+    }),
+    updateAd: (id, data) => api.put(`/ads/${id}`, data, {
+        headers: { 'Content-Type': 'application/json' }
+    }),
+    deleteAd: (id) => api.delete(`/ads/${id}`),
+    uploadPhoto: (formData) => api.post('/ads/upload', formData)
+};
+
 export default api;

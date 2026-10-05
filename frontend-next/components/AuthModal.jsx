@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     X, User, Mail, Lock, Phone, ShieldCheck, Building2, CheckCircle2, 
     FileText, KeyRound, Award, Send, Copy, Check, ArrowRight, RefreshCw, Smartphone
@@ -12,6 +12,26 @@ const AuthModal = ({ mode = 'login', onClose }) => {
     
     const [isLogin, setIsLogin] = useState(mode === 'login');
     const [regStep, setRegStep] = useState(1);
+    const [resendTimer, setResendTimer] = useState(0);
+
+    // Resend Timer Countdown
+    useEffect(() => {
+        let interval;
+        if (resendTimer > 0) {
+            interval = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [resendTimer]);
+
+    // Prevent background scrolling when modal is open
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     // Form fields
     const [name, setName] = useState('');
@@ -78,6 +98,7 @@ const AuthModal = ({ mode = 'login', onClose }) => {
 
         setInputEmailOtp('');
         setRegStep(2);
+        setResendTimer(120);
 
     } catch (err) {
         setError(err.response?.data?.error || (
@@ -185,9 +206,13 @@ const AuthModal = ({ mode = 'login', onClose }) => {
         }
 
     } catch (err) {
+        console.log('[Login Error] status:', err.response?.status);
+        console.log('[Login Error] data:', err.response?.data);
+        console.log('[Login Error] full:', err);
         setError(
             err.response?.data?.error ||
-            'Login failed. Use a verified email or Verification ID with your password.'
+            err.response?.data?.message ||
+            `Login failed (${err.response?.status || 'network error'}). Use a verified email or Verification ID with your password.`
         );
     } finally {
         setLoading(false);
@@ -484,10 +509,16 @@ const AuthModal = ({ mode = 'login', onClose }) => {
                                     </button>
                                     <button
                                         type="button"
-                                        className="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-1"
+                                        disabled={resendTimer > 0 || loading}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                                            resendTimer > 0
+                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
+                                        }`}
                                         onClick={handleSendOtp}
                                     >
-                                        <RefreshCw className="w-3 h-3" /> Resend OTP
+                                        <RefreshCw className={`w-3 h-3 ${resendTimer > 0 ? 'opacity-50' : ''}`} /> 
+                                        {resendTimer > 0 ? `Resend in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend OTP'}
                                     </button>
                                 </div>
 

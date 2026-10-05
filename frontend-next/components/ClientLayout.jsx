@@ -8,6 +8,7 @@ import { ChatProvider, useChat } from '../context/ChatContext';
 import { CartProvider } from '../context/CartContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ScrollButton from './ScrollButton';
 
 function LayoutInner({ children }) {
     const { openChat } = useChat();
@@ -28,6 +29,8 @@ function LayoutInner({ children }) {
             </main>
 
             {!isAdminRoute && <Footer />}
+            
+            <ScrollButton />
 
         </div>
     );

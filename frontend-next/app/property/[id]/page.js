@@ -16,12 +16,16 @@ import {
   ShieldCheck,
   Heart,
   ShoppingCart,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import { propertyAPI } from '../../../services/api';
 import MapPicker from '../../../components/MapPicker';
 import NearbyPlaces from '../../../components/NearbyPlaces';
 import EmiCalculator from '../../../components/EmiCalculator';
+import MediaLightbox from '../../../components/MediaLightbox';
 
 import { useAuth } from '../../../context/AuthContext';
 import { useChat } from '../../../context/ChatContext';
@@ -47,6 +51,7 @@ export default function PropertyPage({ onOpenChat }) {
   const [loading, setLoading] = useState(true);
 
   const [selectedMediaIdx, setSelectedMediaIdx] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const [enquiryMessage, setEnquiryMessage] = useState('');
   const [enquirySent, setEnquirySent] = useState(false);
@@ -810,7 +815,9 @@ export default function PropertyPage({ onOpenChat }) {
 
             {/* MAIN IMAGE */}
 
-            <div className="
+            <div 
+                onClick={() => setIsLightboxOpen(true)}
+                className="
                 order-1
                 lg:order-2
                 flex-1
@@ -822,7 +829,32 @@ export default function PropertyPage({ onOpenChat }) {
                 flex
                 items-center
                 justify-center
+                relative
+                group
+                cursor-zoom-in
+                transition-all
             ">
+                {/* Fullscreen Overlay Hint */}
+                <div className="absolute top-4 right-4 z-10 opacity-90 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 text-white px-3 py-1.5 rounded-xl backdrop-blur-md border border-white/20 text-xs font-semibold flex items-center gap-1.5 shadow-lg pointer-events-none">
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Click for Fullscreen</span>
+                </div>
+
+                {/* Left Side Arrow Button (On-Page) */}
+                {finalMediaList.length > 1 && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMediaIdx((selectedMediaIdx - 1 + finalMediaList.length) % finalMediaList.length);
+                        }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/50 hover:bg-emerald-600 text-white border border-white/20 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-md cursor-pointer opacity-80 group-hover:opacity-100"
+                        title="Previous media"
+                        aria-label="Previous media"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
+                    </button>
+                )}
 
                 {activeMedia?.media_type === 'video' ? (
 
@@ -831,6 +863,7 @@ export default function PropertyPage({ onOpenChat }) {
                             activeMedia.file_url
                         )}
                         controls
+                        onClick={(e) => e.stopPropagation()}
                         className="
                             w-full
                             h-full
@@ -854,6 +887,9 @@ export default function PropertyPage({ onOpenChat }) {
                             h-full
                             max-h-[520px]
                             object-contain
+                            transition-transform
+                            duration-300
+                            group-hover:scale-[1.02]
                         "
                     />
 
@@ -866,6 +902,22 @@ export default function PropertyPage({ onOpenChat }) {
                         No property image available
                     </div>
 
+                )}
+
+                {/* Right Side Arrow Button (On-Page) */}
+                {finalMediaList.length > 1 && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMediaIdx((selectedMediaIdx + 1) % finalMediaList.length);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/50 hover:bg-emerald-600 text-white border border-white/20 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-md cursor-pointer opacity-80 group-hover:opacity-100"
+                        title="Next media"
+                        aria-label="Next media"
+                    >
+                        <ChevronRight className="w-6 h-6" />
+                    </button>
                 )}
 
             </div>
@@ -1623,15 +1675,24 @@ export default function PropertyPage({ onOpenChat }) {
 
       {property.price != null && (
         <div className="pt-4">
-
           <EmiCalculator
             defaultPrincipal={
               property.price
             }
           />
-
         </div>
       )}
+
+      {/* FULLSCREEN MEDIA LIGHTBOX MODAL */}
+      <MediaLightbox
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        mediaList={finalMediaList}
+        currentIndex={selectedMediaIdx}
+        onChangeIndex={setSelectedMediaIdx}
+        title={property.title}
+        getMediaUrl={getMediaUrl}
+      />
 
     </div>
   );

@@ -216,6 +216,8 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
+        console.log('[LOGIN] req.body:', req.body);  // DEBUG — remove after fix
+
         if (!isPgConnected()) {
             return res.status(503).json({ error: 'Database unavailable. Login cannot be completed.' });
         }
