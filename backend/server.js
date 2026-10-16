@@ -58,19 +58,19 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/ads', adRoutes);
 
 app.get('/api/health', (req, res) => {
-
     res.json({
         status: 'online',
-
         app: 'Evertree Property Connect API',
-
         database: isPgConnected()
             ? 'PostgreSQL Connected'
-            : 'In-Memory Resilient Engine Active',
-
+            : 'Resilient Offline Engine Active (Serving latest information & photos)',
+        snapshot: {
+            properties: fallbackData.properties ? fallbackData.properties.length : 0,
+            photos: fallbackData.property_media ? fallbackData.property_media.length : 0,
+            ads: fallbackData.advertisements ? fallbackData.advertisements.length : 0
+        },
         timestamp: new Date()
     });
-
 });
 
 
@@ -436,32 +436,22 @@ const PORT =
 // ============================================================
 
 initDB()
-
-    .then(() => {
-
+    .catch((err) => {
+        console.warn('⚠️ [Resilient DB Engine] Startup note:', err.message);
+    })
+    .finally(() => {
         server.listen(
             PORT,
             () => {
-
                 console.log(
                     `🚀 Evertree Backend Server running on http://localhost:${PORT}`
                 );
-
+                console.log(
+                    `🛡️ Resilient Offline Snapshot Engine: ${isPgConnected() ? 'ONLINE & SYNCED' : 'ACTIVE (OFFLINE SNAPSHOT READY)'}`
+                );
                 console.log(
                     `📦 Subscription API available at http://localhost:${PORT}/api/subscriptions`
                 );
-
             }
         );
-
-    })
-
-    .catch(() => {
-
-        console.error(
-            'Backend stopped because PostgreSQL is unavailable. Check backend/.env credentials.'
-        );
-
-        process.exitCode = 1;
-
     });

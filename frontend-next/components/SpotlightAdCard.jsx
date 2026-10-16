@@ -33,16 +33,20 @@ export default function SpotlightAdCard({ className = "" }) {
     const [ads, setAds] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const getImageUrl = (url) => {
-        if (!url) return defaultSpotlightAds[0].image_url;
+    const getImageUrl = (rawUrl) => {
+        if (!rawUrl) return defaultSpotlightAds[0].image_url;
+        let url = rawUrl;
+        if (typeof url === 'string' && url.includes('localhost:5000/uploads/')) {
+            url = url.substring(url.indexOf('/uploads/'));
+        }
+        if (typeof url === 'string' && url.startsWith('/uploads/')) {
+            return url;
+        }
         if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
             return url;
         }
         const cleaned = url.startsWith('/') ? url : `/${url}`;
-        if (cleaned.startsWith('/uploads/')) {
-            return `http://localhost:5000${cleaned}`;
-        }
-        return url;
+        return cleaned;
     };
 
     useEffect(() => {

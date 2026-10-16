@@ -7,15 +7,19 @@ import {
     Calendar, ArrowUpRight, RefreshCw, Eye
 } from 'lucide-react';
 
-const getAdImageUrl = (url) => {
-    if (!url) return '';
+const getAdImageUrl = (rawUrl) => {
+    if (!rawUrl) return '';
+    let url = rawUrl;
+    if (typeof url === 'string' && url.includes('localhost:5000/uploads/')) {
+        url = url.substring(url.indexOf('/uploads/'));
+    }
+    if (typeof url === 'string' && url.startsWith('/uploads/')) {
+        return url;
+    }
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
         return url;
     }
-    if (url.startsWith('/uploads/')) {
-        return `http://localhost:5000${url}`;
-    }
-    return url;
+    return url.startsWith('/') ? url : `/${url}`;
 };
 
 export default function AdminAdsPage() {

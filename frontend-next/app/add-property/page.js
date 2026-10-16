@@ -381,7 +381,7 @@
 // }
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -395,7 +395,8 @@ import {
     Crown,
     Check,
     Loader2,
-    AlertCircle
+    AlertCircle,
+    CreditCard
 } from 'lucide-react';
 
 import {
@@ -404,6 +405,7 @@ import {
 } from '../../services/api';
 
 import MapPicker from '../../components/MapPicker';
+import PaymentModal from '../../components/PaymentModal';
 import { useAuth } from '../../context/AuthContext';
 
 
@@ -462,6 +464,62 @@ export default function AddPropertyPage() {
 
     const [subscriptionError, setSubscriptionError] =
         useState('');
+
+    const [selectedPaymentPlan, setSelectedPaymentPlan] =
+        useState(null);
+
+    const [showPaymentModal, setShowPaymentModal] =
+        useState(false);
+
+    const [userSubscription, setUserSubscription] =
+        useState(null);
+
+    const [checkingQuota, setCheckingQuota] =
+        useState(true);
+
+    // Proactively check current subscription & quota on mount
+    useEffect(() => {
+        const checkUserSubscriptionQuota = async () => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('evertree_token') : null;
+            if (!token && !user) {
+                setCheckingQuota(false);
+                return;
+            }
+            try {
+                const res = await subscriptionAPI.getCurrentSubscription();
+                if (res?.data?.subscription) {
+                    const sub = res.data.subscription;
+                    setUserSubscription(sub);
+                    if (sub.is_limit_reached || (sub.is_free && Number(sub.current_count) >= 10)) {
+                        setSubscriptionRequired(true);
+                    }
+                }
+            } catch (err) {
+                console.warn('Error checking user subscription quota:', err.message);
+            } finally {
+                setCheckingQuota(false);
+            }
+        };
+
+        checkUserSubscriptionQuota();
+    }, [user]);
+
+    const handlePaymentSuccess = (paymentData) => {
+        setSubscriptionRequired(false);
+        setShowSubscriptionPlans(false);
+        setShowPaymentModal(false);
+        setUserSubscription((prev) => ({
+            ...prev,
+            plan_name: paymentData.plan_name,
+            property_limit: Number(paymentData.property_limit) || 25,
+            is_limit_reached: false,
+            is_free: false,
+            remaining_quota: Math.max(0, (Number(paymentData.property_limit) || 25) - (prev?.current_count || 0))
+        }));
+        setMessage(
+            `🎉 Subscription activated (${paymentData.plan_name || 'Upgraded'} Plan)! Your new listing limit is ${paymentData.property_limit || 25} properties. You can now publish your property listing!`
+        );
+    };
 
 
     // =========================================================
@@ -608,6 +666,11 @@ export default function AddPropertyPage() {
 
         }
 
+        if (userSubscription?.is_limit_reached || (userSubscription?.is_free && Number(userSubscription?.current_count) >= 10)) {
+            setSubscriptionRequired(true);
+            return;
+        }
+
 
         setLoading(true);
         setMessage('');
@@ -741,9 +804,11 @@ export default function AddPropertyPage() {
 
             setTimeout(() => {
 
-                router.push(
-                    '/seller-dashboard'
-                );
+                if (user?.role === 'broker') {
+                    router.push('/broker-dashboard');
+                } else {
+                    router.push('/seller-dashboard');
+                }
 
             }, 1200);
 
@@ -864,7 +929,7 @@ export default function AddPropertyPage() {
                                 text-slate-900
                             "
                         >
-                            Subscription required
+                            Subscription Required
                         </h2>
 
 
@@ -878,10 +943,10 @@ export default function AddPropertyPage() {
                                 text-slate-600
                             "
                         >
-                            Your current property listing
-                            limit has been reached. Choose
-                            a subscription plan to post
-                            additional properties.
+                            You have reached the listing limit of{' '}
+                            <strong>{userSubscription?.property_limit || 10} properties</strong> under your{' '}
+                            <strong>{userSubscription?.plan_name || 'Free'}</strong> plan.
+                            As a {user?.role === 'broker' ? 'Broker' : 'Seller'}, posting more than 10 properties requires an active subscription.
                         </p>
 
 
@@ -927,18 +992,20 @@ export default function AddPropertyPage() {
                                     className="h-4 w-4"
                                 />
 
-                                Subscription
+                                Choose Plan & Pay
 
                             </button>
 
 
-                            {/* CLOSE */}
+                            {/* BACK TO DASHBOARD */}
 
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setSubscriptionRequired(
-                                        false
+                                    router.push(
+                                        user?.role === 'broker'
+                                            ? '/broker-dashboard'
+                                            : '/seller-dashboard'
                                     )
                                 }
                                 className="
@@ -955,7 +1022,7 @@ export default function AddPropertyPage() {
                                     transition-colors
                                 "
                             >
-                                Close
+                                Back to Dashboard
                             </button>
 
                         </div>
@@ -1514,17 +1581,13 @@ export default function AddPropertyPage() {
                                                         )}
 
 
-                                                        {/* SUBSCRIBE BUTTON */}
+                                                        {/* SUBSCRIBE BUTTON CONNECTED TO PAYMENT METHODS */}
 
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-
-                                                                console.log(
-                                                                    'Selected subscription plan:',
-                                                                    plan.id
-                                                                );
-
+                                                                setSelectedPaymentPlan(plan);
+                                                                setShowPaymentModal(true);
                                                             }}
                                                             className="
                                                                 mt-6
@@ -1537,11 +1600,17 @@ export default function AddPropertyPage() {
                                                                 text-white
                                                                 hover:bg-emerald-700
                                                                 transition-colors
+                                                                flex
+                                                                items-center
+                                                                justify-center
+                                                                gap-2
+                                                                cursor-pointer
+                                                                shadow-md
+                                                                shadow-emerald-600/20
                                                             "
                                                         >
-
-                                                            Subscribe
-
+                                                            <CreditCard className="h-4 w-4" />
+                                                            Subscribe & Pay
                                                         </button>
 
                                                     </div>
@@ -1688,6 +1757,52 @@ export default function AddPropertyPage() {
                     </div>
 
                 </div>
+
+                {/* =================================================
+                    QUOTA STATUS BANNER
+                ================================================= */}
+                {userSubscription && (
+                    userSubscription.is_limit_reached ? (
+                        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                    <Crown className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                                        Listing Limit Reached ({userSubscription.current_count} / {userSubscription.property_limit} Properties)
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase">
+                                            Subscription Required
+                                        </span>
+                                    </h3>
+                                    <p className="mt-0.5 text-xs sm:text-sm text-slate-600">
+                                        You have reached the maximum 10 listings on the Free plan for {user?.role === 'broker' ? 'brokers' : 'sellers'}. To post additional properties, please subscribe to an active plan.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleOpenSubscriptionPlans}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
+                            >
+                                <Crown className="w-3.5 h-3.5" />
+                                Upgrade / Subscribe Now
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="mb-6 px-4 py-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/60 flex items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2 text-emerald-900 font-semibold">
+                                <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span>
+                                    Posting Property <strong>{(userSubscription.current_count || 0) + 1}</strong> of <strong>{userSubscription.property_limit || 10}</strong> allowed on <strong>{userSubscription.plan_name || 'Free'}</strong> tier
+                                </span>
+                            </div>
+                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
+                                {userSubscription.remaining_quota ?? Math.max(0, 10 - (userSubscription.current_count || 0))} free slots left
+                            </span>
+                        </div>
+                    )
+                )}
 
 
                 {/* =================================================
@@ -2268,6 +2383,7 @@ export default function AddPropertyPage() {
                         <MapPicker
                             lat={latitude}
                             lng={longitude}
+                            address={`${address ? address + ', ' : ''}${city ? city + ', ' : ''}${district || ''}`}
                             isEditable={true}
                             onChangeLocation={(
                                 newLat,
@@ -2615,20 +2731,21 @@ export default function AddPropertyPage() {
                     >
 
                         <button
-                            type="submit"
+                            type={userSubscription?.is_limit_reached ? "button" : "submit"}
+                            onClick={() => {
+                                if (userSubscription?.is_limit_reached) {
+                                    setSubscriptionRequired(true);
+                                }
+                            }}
                             disabled={loading}
-                            className="
+                            className={`
                                 w-full
                                 py-3.5
                                 px-6
                                 rounded-2xl
                                 font-bold
                                 text-white
-                                bg-emerald-600
-                                hover:bg-emerald-700
                                 shadow-lg
-                                shadow-emerald-600/25
-                                hover:shadow-xl
                                 transition-all
                                 hover:-translate-y-0.5
                                 cursor-pointer
@@ -2638,16 +2755,25 @@ export default function AddPropertyPage() {
                                 justify-center
                                 gap-2
                                 text-base
-                            "
+                                ${
+                                    userSubscription?.is_limit_reached
+                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25 hover:shadow-xl'
+                                }
+                            `}
                         >
 
-                            <PlusCircle
-                                className="w-5 h-5"
-                            />
-
-                            {loading
-                                ? 'Submitting Property...'
-                                : 'Publish Property Listing'}
+                            {userSubscription?.is_limit_reached ? (
+                                <>
+                                    <Crown className="w-5 h-5 text-amber-200" />
+                                    Subscription Required to Post (10/10 Limit Reached)
+                                </>
+                            ) : (
+                                <>
+                                    <PlusCircle className="w-5 h-5" />
+                                    {loading ? 'Submitting Property...' : 'Publish Property Listing'}
+                                </>
+                            )}
 
                         </button>
 
@@ -2656,6 +2782,14 @@ export default function AddPropertyPage() {
                 </form>
 
             </div>
+
+            {/* PAYMENT METHODS CHECKOUT MODAL */}
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                plan={selectedPaymentPlan}
+                onSuccess={handlePaymentSuccess}
+            />
 
         </div>
 

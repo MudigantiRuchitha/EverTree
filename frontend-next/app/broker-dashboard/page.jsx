@@ -18,15 +18,21 @@ import {
     Mail,
     Eye,
     ChevronRight,
-    UserPlus
+    UserPlus,
+    Crown,
+    Sparkles,
+    CreditCard,
+    Check,
+    X
 } from 'lucide-react';
-import { propertyAPI, serviceAPI } from '../../services/api';
+import { propertyAPI, serviceAPI, subscriptionAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PropertyCard from '../../components/PropertyCard';
 import AnimatedAdsBanner from '../../components/AnimatedAdsBanner';
 import TopAdTicker from '../../components/TopAdTicker';
 import InGridAdCard from '../../components/InGridAdCard';
 import SpotlightAdCard from '../../components/SpotlightAdCard';
+import PaymentModal from '../../components/PaymentModal';
 
 export default function BrokerDashboard() {
     const { user } = useAuth();
@@ -36,19 +42,28 @@ export default function BrokerDashboard() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Subscription & Payment state
+    const [subscription, setSubscription] = useState(null);
+    const [plans, setPlans] = useState([]);
+    const [showPlansModal, setShowPlansModal] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+
     const loadBrokerData = async () => {
         if (!user) return;
         setLoading(true);
         try {
             const isBrokerOrSeller = user?.role === 'broker' || user?.role === 'seller';
-            const [listingsRes, enquiriesRes] = await Promise.all([
+            const [listingsRes, enquiriesRes, subRes] = await Promise.all([
                 isBrokerOrSeller
                     ? propertyAPI.getMyListings().catch(() => ({ data: [] }))
                     : Promise.resolve({ data: [] }),
-                propertyAPI.getEnquiries().catch(() => ({ data: [] }))
+                propertyAPI.getEnquiries().catch(() => ({ data: [] })),
+                subscriptionAPI.getCurrentSubscription().catch(() => ({ data: { subscription: null } }))
             ]);
             setMyListings(Array.isArray(listingsRes.data) ? listingsRes.data : []);
             setEnquiries(Array.isArray(enquiriesRes.data) ? enquiriesRes.data : []);
+            setSubscription(subRes?.data?.subscription || null);
             
             // Fetch Broker requests with localStorage fallback
             let fetchedBrokerRequests = [];
@@ -144,6 +159,18 @@ export default function BrokerDashboard() {
                             </button>
                             <Link
                                 href="/add-property"
+                                onClick={async (e) => {
+                                    if (subscription?.is_limit_reached) {
+                                        e.preventDefault();
+                                        try {
+                                            const res = await subscriptionAPI.getPlans();
+                                            setPlans(res?.data?.plans || []);
+                                            setShowPlansModal(true);
+                                        } catch (err) {
+                                            console.error('Failed to load plans:', err);
+                                        }
+                                    }
+                                }}
                                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-800 font-bold text-sm hover:bg-emerald-50 shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5"
                             >
                                 <PlusCircle className="w-4 h-4" />
@@ -158,24 +185,84 @@ export default function BrokerDashboard() {
             {/* ============================== DASHBOARD CONTENT ============================== */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
+                {/* Listing Limit Reached Banner */}
+                {subscription?.is_limit_reached && (
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
+                        <div className="flex items-start sm:items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                <Crown className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                                    Broker Listing Limit Reached ({subscription.current_count || 10} / {subscription.property_limit || 10} Properties)
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase">
+                                        Subscription Required
+                                    </span>
+                                </h4>
+                                <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                                    You have reached the free limit of 10 properties. Brokers listing more than 10 properties require an active subscription plan.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                try {
+                                    const res = await subscriptionAPI.getPlans();
+                                    setPlans(res?.data?.plans || []);
+                                    setShowPlansModal(true);
+                                } catch (e) {
+                                    console.error('Failed to load plans:', e);
+                                }
+                            }}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
+                        >
+                            <Crown className="w-3.5 h-3.5" />
+                            Upgrade Broker Plan
+                        </button>
+                    </div>
+                )}
+
                 {/* =================== STATS CARDS =================== */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
 
                     {/* My Listings */}
-                    <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-emerald-600" />
+                    <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                    <Building2 className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await subscriptionAPI.getPlans();
+                                            setPlans(res?.data?.plans || []);
+                                            setShowPlansModal(true);
+                                        } catch (e) {
+                                            console.error('Failed to load plans:', e);
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-colors cursor-pointer border border-emerald-200"
+                                >
+                                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                                    Upgrade
+                                </button>
                             </div>
-                            <Link href="/my-listing" className="text-emerald-600 hover:text-emerald-700">
-                                <ChevronRight className="w-4 h-4" />
-                            </Link>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">My Listings</p>
+                            <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-900">
+                                {loading ? '—' : myListings.length}
+                            </h2>
                         </div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">My Listings</p>
-                        <h2 className="mt-1 text-2xl sm:text-3xl font-black text-slate-900">
-                            {loading ? '—' : myListings.length}
-                        </h2>
-                        <p className="mt-0.5 text-xs text-slate-400">10 free listings</p>
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span className="text-slate-500">
+                                Quota: <strong className="text-slate-800">{subscription?.property_limit || 10} listings</strong>
+                            </span>
+                            <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${subscription?.is_free ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
+                                {subscription?.plan_name || 'Free'} Plan
+                            </span>
+                        </div>
                     </div>
 
                     {/* Buyer Enquiries */}
@@ -559,6 +646,102 @@ export default function BrokerDashboard() {
                 </div>
 
             </section>
+
+            {/* SUBSCRIPTION PLANS MODAL */}
+            {showPlansModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                            <div>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                                    <Crown className="w-3.5 h-3.5 text-amber-500" /> Broker Subscription Plans
+                                </span>
+                                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                                    Upgrade Your Listing Limit
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500">
+                                    Expand your client property portfolio and connect instantly to payment methods.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowPlansModal(false)}
+                                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            {plans.map((p) => (
+                                <div
+                                    key={p.id}
+                                    className={`rounded-2xl p-5 border transition-all flex flex-col justify-between ${
+                                        p.name === 'Professional'
+                                            ? 'border-emerald-500 bg-gradient-to-b from-emerald-50/50 to-white shadow-lg ring-2 ring-emerald-500/20'
+                                            : 'border-slate-200 bg-white hover:border-slate-300'
+                                    }`}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-extrabold text-slate-900 text-lg">{p.name}</h4>
+                                            {p.name === 'Professional' && (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                                                    Most Popular
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-2xl font-black text-slate-900 mb-1">
+                                            ₹{Number(p.price).toLocaleString('en-IN')}
+                                            <span className="text-xs font-normal text-slate-500"> / {p.duration_days || 30} days</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mb-4">{p.description}</p>
+                                        
+                                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 mb-4 text-xs">
+                                            <span className="text-slate-500">Quota:</span>{' '}
+                                            <strong className="text-emerald-700 font-bold">{p.property_limit} Properties</strong>
+                                        </div>
+
+                                        <ul className="space-y-2 text-xs text-slate-600 mb-6">
+                                            {(Array.isArray(p.features) ? p.features : []).map((feat, idx) => (
+                                                <li key={idx} className="flex items-center gap-2">
+                                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                    <span>{typeof feat === 'string' ? feat : feat?.name || ''}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedPlan(p);
+                                            setShowPaymentModal(true);
+                                        }}
+                                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                                    >
+                                        <CreditCard className="w-3.5 h-3.5" />
+                                        Select & Pay
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PAYMENT METHODS CHECKOUT MODAL */}
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={() => setShowPaymentModal(false)}
+                plan={selectedPlan}
+                onSuccess={(resData) => {
+                    setShowPlansModal(false);
+                    setShowPaymentModal(false);
+                    loadBrokerData();
+                }}
+            />
+
         </main>
     );
 }

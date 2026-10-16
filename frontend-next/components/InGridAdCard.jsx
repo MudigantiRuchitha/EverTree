@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Sparkles, ArrowRight, ArrowUpRight, CheckCircle2, Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, ArrowRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { adAPI } from '../services/api';
 
 export default function InGridAdCard({ ad, slotIndex = 1, className = "" }) {
     const fallbackAd = {
@@ -12,18 +13,47 @@ export default function InGridAdCard({ ad, slotIndex = 1, className = "" }) {
         position: slotIndex
     };
 
-    const currentAd = ad || fallbackAd;
+    const [dynamicAd, setDynamicAd] = useState(ad || null);
 
-    const getImageUrl = (url) => {
-        if (!url) return fallbackAd.image_url;
+    useEffect(() => {
+        if (ad) {
+            setDynamicAd(ad);
+            return;
+        }
+
+        let isMounted = true;
+        adAPI.getAds()
+            .then(res => {
+                if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
+                    const match = res.data.find(a => String(a.position) === String(slotIndex))
+                        || res.data[(Number(slotIndex) - 1) % res.data.length]
+                        || res.data[0];
+                    if (match) {
+                        setDynamicAd(match);
+                    }
+                }
+            })
+            .catch(() => {});
+
+        return () => { isMounted = false; };
+    }, [ad, slotIndex]);
+
+    const currentAd = dynamicAd || fallbackAd;
+
+    const getImageUrl = (rawUrl) => {
+        if (!rawUrl) return fallbackAd.image_url;
+        let url = rawUrl;
+        if (typeof url === 'string' && url.includes('localhost:5000/uploads/')) {
+            url = url.substring(url.indexOf('/uploads/'));
+        }
+        if (typeof url === 'string' && url.startsWith('/uploads/')) {
+            return url;
+        }
         if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
             return url;
         }
         const cleaned = url.startsWith('/') ? url : `/${url}`;
-        if (cleaned.startsWith('/uploads/')) {
-            return `http://localhost:5000${cleaned}`;
-        }
-        return url;
+        return cleaned;
     };
 
     const imageUrl = getImageUrl(currentAd.image_url);

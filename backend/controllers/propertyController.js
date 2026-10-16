@@ -1,4 +1,4 @@
-const { query, isPgConnected, fallbackData } = require('../config/db');
+const { query, isPgConnected, fallbackData, saveSnapshotToDisk, getDefaultPropertyImage } = require('../config/db');
 
 
 // =====================================================
@@ -144,77 +144,77 @@ exports.getProperties = async (req, res) => {
 
             sql += ` ORDER BY p.id DESC`;
 
+            try {
+                const result = await query(sql, params);
+                if (result.rows && result.rows.length > 0) {
+                    return res.json(result.rows);
+                }
+            } catch (pgQueryErr) {
+                console.warn('⚠️ [Resilient DB Engine] getProperties PostgreSQL query failed, switching to offline snapshot:', pgQueryErr.message);
+            }
 
-            const result = await query(sql, params);
+        }
 
-            return res.json(result.rows);
+        // =====================================================
+        // RESILIENT FALLBACK MODE (SERVING LATEST PERSISTENT DATA)
+        // =====================================================
 
-        } else {
+        let list = (fallbackData.properties || []).map(p => {
 
-            // =====================================================
-            // FALLBACK MODE
-            // =====================================================
+            const seller =
+                (fallbackData.users || []).find(
+                    u => Number(u.id) === Number(p.seller_id)
+                ) || {};
 
-            let list = fallbackData.properties.map(p => {
+            const coverMedia =
+                (fallbackData.property_media || []).find(
+                    m =>
+                        Number(m.property_id) === Number(p.id) &&
+                        (
+                            m.media_type === 'image' ||
+                            !m.media_type
+                        )
+                );
 
-                const seller =
-                    fallbackData.users.find(
-                        u => u.id === p.seller_id
-                    ) || {};
+            const isFavorite = userId
+                ? (fallbackData.favorites || []).some(
+                    f =>
+                        (
+                            Number(f.user_id) === Number(userId) ||
+                            Number(f.buyer_id) === Number(userId)
+                        ) &&
+                        Number(f.property_id) === Number(p.id)
+                )
+                : false;
 
-                const coverMedia =
-                    fallbackData.property_media.find(
-                        m =>
-                            m.property_id === p.id &&
-                            (
-                                m.media_type === 'image' ||
-                                !m.media_type
-                            )
-                    );
+            const coverImage = coverMedia
+                ? (coverMedia.file_url || coverMedia.media_url || null)
+                : (p.cover_image || getDefaultPropertyImage(p.property_type, p.id));
 
-                const isFavorite = userId
-                    ? fallbackData.favorites.some(
-                        f =>
-                            (
-                                f.user_id === userId ||
-                                f.buyer_id === userId
-                            ) &&
-                            f.property_id === p.id
-                    )
-                    : false;
+            return {
+                ...p,
 
+                seller_name:
+                    seller.name ||
+                    'Property Owner',
 
-                return {
-                    ...p,
+                seller_role:
+                    seller.role ||
+                    'seller',
 
-                    seller_name:
-                        seller.name ||
-                        'Property Connect Agent',
+                seller_phone:
+                    seller.phone ||
+                    '+91 9876543210',
 
-                    seller_role:
-                        seller.role ||
-                        'broker',
+                seller_avatar:
+                    seller.avatar_url,
 
-                    seller_phone:
-                        seller.phone ||
-                        '+91 9876543210',
+                cover_image:
+                    coverImage,
 
-                    seller_avatar:
-                        seller.avatar_url,
-
-                    // NO HARDCODED IMAGE
-                    cover_image:
-                        coverMedia
-                            ? (
-                                coverMedia.file_url ||
-                                coverMedia.media_url ||
-                                null
-                            )
-                            : null,
-
-                    is_favorite: isFavorite
-                };
-            });
+                is_favorite: isFavorite
+            };
+        });
 
 
             if (category && category !== 'all') {
@@ -307,8 +307,6 @@ exports.getProperties = async (req, res) => {
 
 
             return res.json(list.reverse());
-        }
-
     } catch (err) {
 
         console.error(
@@ -343,226 +341,139 @@ exports.getPropertyById = async (req, res) => {
 
 
         if (isPgConnected()) {
-
-            const propRes = await query(
-                `
-                SELECT
-                    p.*,
-
-                    u.name AS seller_name,
-                    u.role AS seller_role,
-                    u.phone AS seller_phone,
-                    u.email AS seller_email,
-                    u.avatar_url AS seller_avatar
-
-                FROM properties p
-
-                LEFT JOIN users u
-                    ON p.seller_id = u.id
-
-                WHERE p.id = $1
-                `,
-                [propId]
-            );
-
-
-            if (propRes.rows.length === 0) {
-
-                return res.status(404).json({
-                    error: 'Property not found'
-                });
-            }
-
-
-            const property = propRes.rows[0];
-
-
-            // Increment views
             try {
-
-                await query(
+                const propRes = await query(
                     `
-                    UPDATE properties
-                    SET views_count =
-                        COALESCE(views_count, 0) + 1
-                    WHERE id = $1
+                    SELECT
+                        p.*,
+                        u.name AS seller_name,
+                        u.role AS seller_role,
+                        u.phone AS seller_phone,
+                        u.email AS seller_email,
+                        u.avatar_url AS seller_avatar
+                    FROM properties p
+                    LEFT JOIN users u ON p.seller_id = u.id
+                    WHERE p.id = $1
                     `,
                     [propId]
                 );
 
-            } catch (viewError) {
+                if (propRes.rows.length > 0) {
+                    const property = propRes.rows[0];
 
-                console.log(
-                    'views_count update skipped:',
-                    viewError.message
-                );
-            }
+                    // Increment views
+                    try {
+                        await query(
+                            `UPDATE properties SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1`,
+                            [propId]
+                        );
+                    } catch (_) {}
 
-
-            // =====================================================
-            // PROPERTY MEDIA
-            // =====================================================
-
-            const mediaRes = await query(
-                `
-                SELECT
-                    id,
-                    property_id,
-
-                    COALESCE(file_url, media_url) AS file_url,
-
-                    COALESCE(file_url, media_url) AS media_url,
-
-                    media_type
-
-                FROM property_media
-
-                WHERE property_id = $1
-
-                ORDER BY id ASC
-                `,
-                [propId]
-            );
-
-
-            // =====================================================
-            // PROPERTY DOCUMENTS
-            // =====================================================
-
-            const docsRes = await query(
-                `
-                SELECT *
-                FROM property_docs
-                WHERE property_id = $1
-                `,
-                [propId]
-            );
-
-
-            // =====================================================
-            // AMENITIES
-            // =====================================================
-
-            let amenitiesList = [];
-
-            try {
-
-                const amenitiesRes = await query(
-                    `
-                    SELECT amenity_name
-                    FROM property_amenities
-                    WHERE property_id = $1
-                    `,
-                    [propId]
-                );
-
-                amenitiesList =
-                    amenitiesRes.rows.map(
-                        a => a.amenity_name
+                    const mediaRes = await query(
+                        `
+                        SELECT
+                            id, property_id,
+                            COALESCE(file_url, media_url) AS file_url,
+                            COALESCE(file_url, media_url) AS media_url,
+                            media_type
+                        FROM property_media
+                        WHERE property_id = $1
+                        ORDER BY id ASC
+                        `,
+                        [propId]
                     );
 
-            } catch (amenityError) {
-
-                console.log(
-                    'Amenities query skipped:',
-                    amenityError.message
-                );
-
-                amenitiesList = [];
-            }
-
-
-            property.media = mediaRes.rows;
-
-            property.docs = docsRes.rows;
-
-            property.amenities = amenitiesList;
-
-
-            return res.json(property);
-
-        } else {
-
-            // =====================================================
-            // FALLBACK MODE
-            // =====================================================
-
-            const property =
-                fallbackData.properties.find(
-                    p => p.id === propId
-                );
-
-
-            if (!property) {
-
-                return res.status(404).json({
-                    error: 'Property not found'
-                });
-            }
-
-
-            property.views_count =
-                (property.views_count || 0) + 1;
-
-
-            const seller =
-                fallbackData.users.find(
-                    u => u.id === property.seller_id
-                ) || {};
-
-
-            const media =
-                fallbackData.property_media.filter(
-                    m => m.property_id === propId
-                );
-
-
-            const docs =
-                fallbackData.property_docs.filter(
-                    d => d.property_id === propId
-                );
-
-
-            const amenities =
-                fallbackData.property_amenities
-                    .filter(
-                        a => a.property_id === propId
-                    )
-                    .map(
-                        a => a.amenity_name
+                    const docsRes = await query(
+                        `SELECT * FROM property_docs WHERE property_id = $1`,
+                        [propId]
                     );
 
+                    let amenitiesList = [];
+                    try {
+                        const amenitiesRes = await query(
+                            `SELECT amenity_name FROM property_amenities WHERE property_id = $1`,
+                            [propId]
+                        );
+                        amenitiesList = amenitiesRes.rows.map(a => a.amenity_name);
+                    } catch (_) {}
 
-            return res.json({
+                    let mediaList = mediaRes.rows;
+                    if (!mediaList || mediaList.length === 0) {
+                        const defaultImg = getDefaultPropertyImage(property.property_type, property.id);
+                        mediaList = [{
+                            id: 'gen-' + property.id,
+                            property_id: property.id,
+                            media_type: 'image',
+                            file_url: defaultImg,
+                            media_url: defaultImg
+                        }];
+                    }
 
-                ...property,
+                    property.media = mediaList;
+                    property.docs = docsRes.rows;
+                    property.amenities = amenitiesList;
 
-                seller_name:
-                    seller.name ||
-                    'Property Connect Agent',
+                    return res.json(property);
+                }
+            } catch (pgErr) {
+                console.warn('⚠️ [Resilient DB Engine] getPropertyById PG error, falling back to snapshot:', pgErr.message);
+            }
+        }
 
-                seller_role:
-                    seller.role ||
-                    'broker',
+        // =====================================================
+        // RESILIENT FALLBACK MODE (SERVING FROM SNAPSHOT)
+        // =====================================================
 
-                seller_phone:
-                    seller.phone ||
-                    '+91 9876543210',
+        const property = (fallbackData.properties || []).find(
+            p => Number(p.id) === propId
+        );
 
-                seller_email:
-                    seller.email ||
-                    'contact@evertree.in',
-
-                seller_avatar:
-                    seller.avatar_url,
-
-                media,
-
-                docs,
-
-                amenities
+        if (!property) {
+            return res.status(404).json({
+                error: 'Property not found'
             });
         }
+
+        property.views_count = (property.views_count || 0) + 1;
+
+        const seller = (fallbackData.users || []).find(
+            u => Number(u.id) === Number(property.seller_id)
+        ) || {};
+
+        let media = (fallbackData.property_media || []).filter(
+            m => Number(m.property_id) === propId
+        );
+
+        if (media.length === 0) {
+            const defaultImg = getDefaultPropertyImage(property.property_type, property.id);
+            media = [{
+                id: 'gen-' + property.id,
+                property_id: property.id,
+                media_type: 'image',
+                file_url: defaultImg,
+                media_url: defaultImg
+            }];
+        }
+
+        const docs = (fallbackData.property_docs || []).filter(
+            d => Number(d.property_id) === propId
+        );
+
+        const amenities = (fallbackData.property_amenities || [])
+            .filter(a => Number(a.property_id) === propId)
+            .map(a => a.amenity_name);
+
+        return res.json({
+            ...property,
+            seller_name: seller.name || 'Property Owner',
+            seller_role: seller.role || 'seller',
+            seller_phone: seller.phone || '+91 9876543210',
+            seller_email: seller.email || 'contact@evertree.in',
+            seller_avatar: seller.avatar_url,
+            media,
+            docs,
+            amenities
+        });
 
     } catch (err) {
 
@@ -628,57 +539,89 @@ exports.createProperty = async (req, res) => {
 
 
         // =====================================================
-        // LISTING LIMIT
+        // DYNAMIC LISTING LIMIT (FREE: 10, SUBSCRIBED: 25 / 50 / 100)
         // =====================================================
 
+        let allowedLimit = 10;
+        let activePlanName = 'Free';
+
         if (isPgConnected()) {
+            try {
+                const subRes = await query(
+                    `
+                    SELECT plan_name, property_limit
+                    FROM seller_subscriptions
+                    WHERE seller_id = $1 AND status = 'active'
+                      AND (end_date IS NULL OR end_date > NOW())
+                    ORDER BY property_limit DESC, id DESC
+                    LIMIT 1
+                    `,
+                    [seller_id]
+                );
+
+                if (subRes.rows && subRes.rows.length > 0) {
+                    allowedLimit = Number(subRes.rows[0].property_limit) || 10;
+                    activePlanName = subRes.rows[0].plan_name || 'Active Plan';
+                }
+            } catch (subErr) {
+                console.warn('Subscription check warning:', subErr.message);
+            }
 
             const listingCount =
                 await query(
                     `
                     SELECT COUNT(*)::int AS count
                     FROM properties
-                    WHERE seller_id = $1
+                    WHERE (seller_id = $1 OR broker_id = $1)
+                      AND deleted_at IS NULL
                     `,
                     [seller_id]
                 );
 
+            const count = Number(listingCount.rows[0]?.count) || 0;
 
-            if (
-                listingCount.rows[0].count >= 10
-            ) {
-
+            if (count >= allowedLimit) {
                 return res.status(403).json({
-
-                    code:
-                        'SUBSCRIPTION_REQUIRED',
-
-                    error:
-                        'You have reached the free limit of 10 property listings. Please subscribe to post more.'
+                    code: 'SUBSCRIPTION_REQUIRED',
+                    error: `You have reached the listing limit of ${allowedLimit} properties under your ${activePlanName} plan. Please subscribe or upgrade to post more properties.`,
+                    currentCount: count,
+                    propertyLimit: allowedLimit,
+                    planName: activePlanName
                 });
             }
 
         } else {
+            // Offline fallback
+            const subs = fallbackData.seller_subscriptions || [];
+            const sub = subs.find(
+                s => String(s.seller_id) === String(seller_id) &&
+                     s.status === 'active' &&
+                     (!s.end_date || new Date(s.end_date) > new Date())
+            );
+
+            if (sub) {
+                allowedLimit = Number(sub.property_limit) || 10;
+                activePlanName = sub.plan_name || 'Active Plan';
+            }
 
             const listingCount =
                 fallbackData.properties.filter(
                     property =>
-                        property.seller_id === seller_id
+                        (String(property.seller_id) === String(seller_id) || String(property.broker_id) === String(seller_id)) &&
+                        !property.deleted_at
                 ).length;
 
-
-            if (listingCount >= 10) {
-
+            if (listingCount >= allowedLimit) {
                 return res.status(403).json({
-
-                    code:
-                        'SUBSCRIPTION_REQUIRED',
-
-                    error:
-                        'You have reached the free limit of 10 property listings. Please subscribe to post more.'
+                    code: 'SUBSCRIPTION_REQUIRED',
+                    error: `You have reached the listing limit of ${allowedLimit} properties under your ${activePlanName} plan. Please subscribe or upgrade to post more properties.`,
+                    currentCount: listingCount,
+                    propertyLimit: allowedLimit,
+                    planName: activePlanName
                 });
             }
         }
+
 
 
         // =====================================================
@@ -1044,14 +987,20 @@ exports.createProperty = async (req, res) => {
                 );
 
 
-            return res.status(201).json({
+            // Keep offline snapshot updated
+            fallbackData.properties = fallbackData.properties || [];
+            fallbackData.properties.unshift(newProperty);
+            if (Array.isArray(savedMedia.rows)) {
+                fallbackData.property_media = fallbackData.property_media || [];
+                fallbackData.property_media.push(...savedMedia.rows);
+            }
+            saveSnapshotToDisk();
 
+            return res.status(201).json({
                 message:
                     'Property created successfully',
-
                 property:
                     newProperty,
-
                 media:
                     savedMedia.rows
             });
@@ -1178,11 +1127,11 @@ exports.createProperty = async (req, res) => {
             );
 
 
-            return res.status(201).json({
+            saveSnapshotToDisk();
 
+            return res.status(201).json({
                 message:
                     'Property created successfully',
-
                 property:
                     newProperty,
 
@@ -2197,17 +2146,21 @@ exports.deleteProperty = async (req, res) => {
         ) {
 
             return res.status(404).json({
-
-                error:
-                    'Property was not deleted.'
+                error: 'Property was not deleted.'
             });
         }
 
+        // Keep offline snapshot in sync
+        if (fallbackData.properties) {
+            fallbackData.properties = fallbackData.properties.filter(p => Number(p.id) !== propertyId);
+        }
+        if (fallbackData.property_media) {
+            fallbackData.property_media = fallbackData.property_media.filter(m => Number(m.property_id) !== propertyId);
+        }
+        saveSnapshotToDisk();
 
         return res.status(200).json({
-
-            success:
-                true,
+            success: true,
 
             message:
                 'Property deleted successfully.',

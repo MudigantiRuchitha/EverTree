@@ -65,18 +65,23 @@ export default function PropertyPage({ onOpenChat }) {
         return '';
     }
 
-    if (
-        fileUrl.startsWith('http://') ||
-        fileUrl.startsWith('https://')
-    ) {
-        return fileUrl;
+    let url = fileUrl;
+    if (typeof url === 'string' && url.includes('localhost:5000/uploads/')) {
+        url = url.substring(url.indexOf('/uploads/'));
     }
 
-    return `http://localhost:5000${
-        fileUrl.startsWith('/')
-            ? fileUrl
-            : `/${fileUrl}`
-    }`;
+    if (typeof url === 'string' && url.startsWith('/uploads/')) {
+        return url;
+    }
+
+    if (
+        url.startsWith('http://') ||
+        url.startsWith('https://')
+    ) {
+        return url;
+    }
+
+    return url.startsWith('/') ? url : `/${url}`;
 };
 
   // ---------------------------------------------------------
@@ -786,6 +791,10 @@ export default function PropertyPage({ onOpenChat }) {
                                     media.file_url
                                 )}
                                 alt={`Property image ${index + 1}`}
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=400&q=80';
+                                }}
                                 className="
                                     w-full
                                     h-full
@@ -882,6 +891,10 @@ export default function PropertyPage({ onOpenChat }) {
                             property.title ||
                             'Property'
                         }
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80';
+                        }}
                         className="
                             w-full
                             h-full
@@ -1659,6 +1672,7 @@ export default function PropertyPage({ onOpenChat }) {
                 lng={
                   property.longitude
                 }
+                address={property.address || `${property.city || ''}${property.district ? ', ' + property.district : ''}`}
                 isEditable={false}
               />
 

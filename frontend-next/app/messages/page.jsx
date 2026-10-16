@@ -570,17 +570,17 @@ export default function MessagesPage() {
             controls
             preload="metadata"
             className="w-full max-w-[280px]"
-            src={`http://localhost:5000${message.media_url}`}
+            src={message.media_url.startsWith('http') ? message.media_url : `${message.media_url}`}
         />
     </div>
 ) : message.media_type === "image" && message.media_url ? (
     <div className="mt-2">
         <img
-            src={`http://localhost:5000${message.media_url}`}
+            src={message.media_url.startsWith('http') ? message.media_url : `${message.media_url}`}
             alt="Image attachment"
             onClick={() =>
                 setSelectedImage(
-                    `http://localhost:5000${message.media_url}`
+                    message.media_url.startsWith('http') ? message.media_url : `${message.media_url}`
                 )
             }
             className="max-w-[280px] cursor-pointer rounded-xl transition hover:opacity-90"
@@ -588,7 +588,7 @@ export default function MessagesPage() {
     </div>
 ) : message.media_url ? (
     <a
-        href={`http://localhost:5000${message.media_url}`}
+        href={message.media_url.startsWith('http') ? message.media_url : `${message.media_url}`}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-2 flex max-w-[280px] items-center gap-3 rounded-xl bg-slate-800 p-3 text-sm text-white transition hover:bg-slate-700"

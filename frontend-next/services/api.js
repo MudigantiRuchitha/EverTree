@@ -146,17 +146,72 @@ api.interceptors.request.use(
 );
 
 
+const CACHE_PREFIX = 'evertree_cache_';
+
+const saveToClientCache = (url, params, data) => {
+    if (typeof window === 'undefined' || !url) return;
+    try {
+        const paramStr = params ? JSON.stringify(params) : '';
+        const key = `${CACHE_PREFIX}${url}_${paramStr}`;
+        localStorage.setItem(key, JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+        if (paramStr) {
+            localStorage.setItem(`${CACHE_PREFIX}${url}_base`, JSON.stringify({
+                data,
+                timestamp: Date.now()
+            }));
+        }
+    } catch (_) {}
+};
+
+const getFromClientCache = (url, params) => {
+    if (typeof window === 'undefined' || !url) return null;
+    try {
+        const paramStr = params ? JSON.stringify(params) : '';
+        const key = `${CACHE_PREFIX}${url}_${paramStr}`;
+        const item = localStorage.getItem(key);
+        if (item) {
+            return JSON.parse(item).data;
+        }
+        const baseItem = localStorage.getItem(`${CACHE_PREFIX}${url}_base`);
+        if (baseItem) {
+            return JSON.parse(baseItem).data;
+        }
+    } catch (_) {}
+    return null;
+};
+
 // =====================================================
 // RESPONSE INTERCEPTOR
 // =====================================================
 
 api.interceptors.response.use(
-
     (response) => {
+        // Cache successful GET responses
+        if (response.config?.method?.toLowerCase() === 'get' && response.data) {
+            saveToClientCache(response.config.url, response.config.params, response.data);
+        }
         return response;
     },
 
     (error) => {
+        const config = error.config;
+        if (config && config.method?.toLowerCase() === 'get') {
+            const cached = getFromClientCache(config.url, config.params);
+            if (cached) {
+                console.warn(`🛡️ [Offline Cache Engine] Serving cached information and photos for [${config.url}]`);
+                return Promise.resolve({
+                    data: cached,
+                    status: 200,
+                    statusText: 'OK (Offline Cache)',
+                    headers: {},
+                    config,
+                    fromCache: true
+                });
+            }
+        }
 
         console.error(
             'API Error:',
@@ -404,7 +459,9 @@ export const adminAPI = {
 };
 
 export const subscriptionAPI = {
-    getPlans: () => api.get('/subscriptions/plans')
+    getPlans: () => api.get('/subscriptions/plans'),
+    getCurrentSubscription: () => api.get('/subscriptions/current'),
+    subscribe: (data) => api.post('/subscriptions/subscribe', data)
 };
 
 export const adAPI = {

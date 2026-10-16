@@ -21,11 +21,14 @@ export default function CartPage() {
     };
 
     const getImageUrl = (property) => {
-        const url = property?.cover_image || property?.image_url || property?.image;
+        let url = property?.cover_image || property?.image_url || property?.image;
         if (!url) return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa';
+        if (typeof url === 'string' && url.includes('localhost:5000/uploads/')) {
+            url = url.substring(url.indexOf('/uploads/'));
+        }
+        if (typeof url === 'string' && url.startsWith('/uploads/')) return url;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        if (url.startsWith('/uploads/')) return `http://localhost:5000${url}`;
-        return url;
+        return url.startsWith('/') ? url : `/${url}`;
     };
 
     if (cartCount === 0) {

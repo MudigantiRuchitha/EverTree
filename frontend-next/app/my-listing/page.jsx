@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Building2, PlusCircle, RefreshCw, Eye, MapPin, Tag, Bed, AlertCircle } from 'lucide-react';
-import { propertyAPI } from '../../services/api';
+import { Building2, PlusCircle, RefreshCw, Eye, MapPin, Tag, Bed, AlertCircle, Crown } from 'lucide-react';
+import { propertyAPI, subscriptionAPI } from '../../services/api';
 import PropertyCard from '../../components/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
 
 export default function MyListingsPage() {
     const { user, loading: authLoading } = useAuth();
     const [properties, setProperties] = useState([]);
+    const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -25,8 +26,12 @@ export default function MyListingsPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await propertyAPI.getMyListings();
+            const [res, subRes] = await Promise.all([
+                propertyAPI.getMyListings(),
+                subscriptionAPI.getCurrentSubscription().catch(() => ({ data: { subscription: null } }))
+            ]);
             setProperties(Array.isArray(res.data) ? res.data : []);
+            setSubscription(subRes?.data?.subscription || null);
         } catch (err) {
             console.error('Failed to load seller listings:', err);
             setError(err.response?.data?.error || 'Unable to load your listed properties.');
@@ -108,6 +113,35 @@ export default function MyListingsPage() {
                 </div>
             )}
 
+            {/* Listing Limit Reached Banner */}
+            {subscription?.is_limit_reached && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
+                    <div className="flex items-start sm:items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                            <Crown className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                                Property Listing Limit Reached ({subscription.current_count || properties.length} / {subscription.property_limit || 10})
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase">
+                                    Subscription Required
+                                </span>
+                            </h4>
+                            <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                                You have posted the maximum 10 listings on the Free plan. Sellers and brokers posting more than 10 properties require an active subscription.
+                            </p>
+                        </div>
+                    </div>
+                    <Link
+                        href={user?.role === 'broker' ? '/broker-dashboard' : '/seller-dashboard'}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
+                    >
+                        <Crown className="w-3.5 h-3.5" />
+                        Upgrade Plan
+                    </Link>
+                </div>
+            )}
+
             {/* Stats Summary Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
@@ -115,9 +149,20 @@ export default function MyListingsPage() {
                     <p className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{properties.length}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-                    <p className="text-xs font-bold text-slate-500 uppercase">Listing Limit</p>
-                    <p className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">{properties.length} / 10</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Free Seller Account</p>
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-slate-500 uppercase">Listing Limit</p>
+                        {subscription?.is_limit_reached && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 uppercase">
+                                Maxed
+                            </span>
+                        )}
+                    </div>
+                    <p className={`text-2xl sm:text-3xl font-black mt-1 ${subscription?.is_limit_reached ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {subscription?.current_count ?? properties.length} / {subscription?.property_limit || 10}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                        {subscription?.plan_name ? `${subscription.plan_name} Plan` : 'Free Tier (10 Limit)'}
+                    </p>
                 </div>
                 <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
                     <p className="text-xs font-bold text-slate-500 uppercase">Account Verification</p>

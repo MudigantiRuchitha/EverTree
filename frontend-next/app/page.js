@@ -222,7 +222,9 @@ export default function HomePage({ onOpenChat }) {
                                 <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <div>
-                                <div className="text-base sm:text-xl font-black text-slate-900">5,000+</div>
+                                <div className="text-base sm:text-xl font-black text-slate-900">
+                                    {properties.length > 0 ? `${properties.length}+` : '34+'}
+                                </div>
                                 <div className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Verified Homes</div>
                             </div>
                         </div>
@@ -345,14 +347,20 @@ export default function HomePage({ onOpenChat }) {
                 ) : (
                     <div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-                            {properties.slice(0, 3).map((property) => (
-                                <PropertyCard
-                                    key={property.id}
-                                    property={property}
-                                    onOpenChat={onOpenChat}
-                                />
+                            {properties.slice(0, 7).map((property, idx) => (
+                                <React.Fragment key={property.id || idx}>
+                                    <PropertyCard
+                                        property={property}
+                                        onOpenChat={onOpenChat}
+                                    />
+                                    {idx === 2 && (
+                                        <InGridAdCard slotIndex={2} />
+                                    )}
+                                </React.Fragment>
                             ))}
-                            <InGridAdCard slotIndex={2} />
+                            {properties.length <= 2 && (
+                                <InGridAdCard slotIndex={2} />
+                            )}
                         </div>
                     </div>
                 )}

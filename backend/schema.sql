@@ -101,3 +101,33 @@ CREATE TABLE IF NOT EXISTS service_leads (
     status VARCHAR(20) DEFAULT 'new',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS subscription_plans (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price NUMERIC(10, 2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'INR',
+    duration_days INT DEFAULT 30,
+    property_limit INT NOT NULL DEFAULT 10,
+    features JSONB,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS seller_subscriptions (
+    id SERIAL PRIMARY KEY,
+    seller_id INT REFERENCES users(id) ON DELETE CASCADE,
+    plan_name VARCHAR(100) NOT NULL,
+    property_limit INT NOT NULL DEFAULT 10,
+    status VARCHAR(50) DEFAULT 'active',
+    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP,
+    payment_method VARCHAR(100),
+    transaction_id VARCHAR(100),
+    amount_paid NUMERIC(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
