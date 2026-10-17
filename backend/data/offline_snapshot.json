@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-13T07:49:32.516Z",
+  "updated_at": "2026-10-17T13:01:46.975Z",
   "properties": [
     {
       "id": "45",
@@ -43,7 +43,7 @@
       "created_at": "2026-10-08T09:27:21.122Z",
       "updated_at": "2026-10-08T09:27:21.122Z",
       "deleted_at": null,
-      "views_count": 0
+      "views_count": 2
     },
     {
       "id": "43",
@@ -65,7 +65,7 @@
       "created_at": "2026-09-28T07:20:09.991Z",
       "updated_at": "2026-09-28T07:20:09.991Z",
       "deleted_at": null,
-      "views_count": 19
+      "views_count": 21
     },
     {
       "id": "38",
@@ -197,7 +197,7 @@
       "created_at": "2026-09-22T11:25:35.290Z",
       "updated_at": "2026-09-22T11:25:35.290Z",
       "deleted_at": null,
-      "views_count": 0
+      "views_count": 4
     },
     {
       "id": "32",
@@ -1279,6 +1279,14 @@
       "email": "srilathasoudu@gmail.com",
       "role": "buyer",
       "phone": "0852963147",
+      "avatar_url": null
+    },
+    {
+      "id": 7,
+      "name": "varun",
+      "email": "varunkyrie@gmail.com",
+      "role": "buyer",
+      "phone": "9959511127",
       "avatar_url": null
     }
   ],
