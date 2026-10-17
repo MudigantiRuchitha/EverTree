@@ -210,7 +210,10 @@ async function tryConnectPg() {
             password,
             port,
             database: dbName,
-            connectionTimeoutMillis: 3000
+            ssl: {
+                rejectUnauthorized: false
+            },
+            connectionTimeoutMillis: 10000
         });
 
         // Test connection
