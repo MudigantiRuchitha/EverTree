@@ -74,7 +74,7 @@ async function tryProxyToBackend(request, subPath) {
         const fetchOptions = {
             method: request.method,
             headers,
-            signal: AbortSignal.timeout(800)
+            signal: AbortSignal.timeout(15000)
         };
 
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
