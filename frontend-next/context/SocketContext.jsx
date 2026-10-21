@@ -12,7 +12,10 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         // Connect to backend Socket.IO server on port 5000
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        // const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        const BACKEND_URL = process.env.NEXT_PUBLIC_SOCKET_URL ||
+            process.env.NEXT_PUBLIC_BACKEND_URL ||
+            'http://localhost:5000'
         const newSocket = io(BACKEND_URL, {
             transports: ['websocket', 'polling']
         });
