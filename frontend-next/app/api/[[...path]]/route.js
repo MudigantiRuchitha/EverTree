@@ -265,10 +265,19 @@ export async function POST(request, { params }) {
     }
 
     // Generic safe response
-    return NextResponse.json({
-        success: true,
-        message: 'Action completed (Direct DB resilient mode).'
-    });
+    // return NextResponse.json({
+    //     success: true,
+    //     message: 'Action completed (Direct DB resilient mode).'
+    // });
+
+    // Do not report success when an endpoint is not implemented.
+    return NextResponse.json(
+        {
+            success: false,
+            error: `Endpoint POST /api/${subPath} is unavailable. Backend proxy failed or route is not implemented.`
+        },
+        { status: 502 }
+    );
 }
 
 // =====================================================
